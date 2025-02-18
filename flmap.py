@@ -229,6 +229,22 @@ html_template = f"""
       }}
     }});
 
+    // Add blurred area layer (everything outside Florida)
+    map.addSource('blurred', {{
+      'type': 'geojson',
+      'data': {blurred_area_geojson}
+    }});
+    map.addLayer({{
+      'id': 'blurred_layer',
+      'type': 'fill',
+      'source': 'blurred',
+      'layout': {{}},
+      'paint': {{
+        'fill-color': '#122017',
+        'fill-opacity': 1.0
+      }}
+    }});
+
     // --- Define Zone-Specific Schedules ---
     var scheduleMapping = {{
       "Mt Dora": "<ul><li>Wednesday: 11am-5pm</li></ul><a href='https://www.edenflorida.com/shop/' target='_blank'>Shop Now!</a>",
