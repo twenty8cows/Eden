@@ -110,9 +110,17 @@ html_template = f"""
       width: 100%;
       background-color: #FAF0E6;
     }}
+    /* Styling for the search bar (geocoder)
+       You can adjust its width, margin, background, border, etc. */
     .mapboxgl-ctrl-geocoder {{
-      min-width: 50%;
+      width: 200px
+      min-width: 120px;
+      font-size: 16px;
       margin: 12px;
+      background-color: white;   /* Example: change background */
+      border: 2px solid #ccc;      /* Example: add a border */
+      border-radius: 4px;          /* Example: round the corners */
+      padding: 5px;                /* Example: add some padding */
     }}
     .legend {{
       background-color: rgba(255,255,255,0.8);
@@ -151,13 +159,16 @@ html_template = f"""
       zoom: 7
   }});
   
-  // Add Mapbox Geocoder (search bar) control to the map
-  map.addControl(new MapboxGeocoder({{
+  // --- Geocoder (Search Bar) Control ---
+  // To change the location of the search bar, modify the second parameter here.
+  // Options: 'top-left', 'top-right', 'bottom-left', or 'bottom-right'
+  var geocoder = new MapboxGeocoder({{
       accessToken: mapboxgl.accessToken,
       mapboxgl: mapboxgl,
-      marker: false,
+      marker: true,
       placeholder: 'Search for an address'
-  }}), 'top-left');
+  }});
+  map.addControl(geocoder, 'top-right');  // Changed to 'top-right'
   
   map.on('load', function () {{
     // Add Florida counties as a fill layer
@@ -248,6 +259,7 @@ html_template = f"""
 </body>
 </html>
 """
+
 
 with open('mapbox_production_map.html', 'w') as f:
     f.write(html_template)
