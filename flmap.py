@@ -229,72 +229,28 @@ html_template = f"""
       }}
     }});
 
-    // --- Blurred Area Layer (everything outside Florida) ---
-    map.addSource('blurred', {{
-      'type': 'geojson',
-      'data': {blurred_area_geojson}
-    }});
-    map.addLayer({{
-      'id': 'blurred_layer',
-      'type': 'fill',
-      'source': 'blurred',
-      'layout': {{}},
-      'paint': {{
-        'fill-color': '#122017',
-        'fill-opacity': 1.0
-      }}
-    }});
-    
-    // --- Interactivity: Zone Click Zoom ---
-    map.on('click', 'zones_layer', function(e) {{
-      var feature = e.features[0];
-      var bbox = turf.bbox(feature);
-      map.fitBounds([[bbox[0], bbox[1]], [bbox[2], bbox[3]]], {{
-          padding: 20,
-          maxZoom: 7,
-          duration: 2000
-      }});
-    }});
-
-    map.on('click', function(e) {{
-      var features = map.queryRenderedFeatures(e.point, {{ layers: ['zones_layer'] }});
-      if (!features.length) {{
-          map.flyTo({{ center: [-81.76, 27.9944], zoom: 7, duration: 3000 }});
-      }}
-    }});
-
     // --- Define Zone-Specific Schedules ---
-    // Create a mapping from zone names to their specific delivery schedules.
     var scheduleMapping = {{
-      "Mt Dora": "<ul><li>Wednesday: 11am-5pm</li></ul>",
-      "North Orlando": "<ul><li>Wednesday: 11am-5pm</li></ul>",
-      "South Orlando": "<ul><li>Wednesday: 11am-5pm</li></ul>",
-      "Riverview": "<ul><li>Thursday: 10am-3pm</li></ul>",
-      "East Tampa": "<ul><li>Thursday: 10am-3pm</li></ul>",
-      "Lakeland": "<ul><li>Thursday: 10am-3pm</li></ul>",
-      "Gainesville": "<ul><li>Friday: 11am-4pm</li></ul>",
-      "Villages": "<ul><li>Friday: 11am-4pm</li></ul>",
-      "Cocoa": "<ul><li>Saturday: 12pm-4pm</li></ul>",
-      "Gulf Coast": "<ul><li>Sunday: 11am-4pm</li></ul>",
-      "Pinellas Park": "<ul><li>Sunday: 11am-4pm</li></ul>",
-      "Deltona": "<ul><li>Saturday: 12pm-4pm</li></ul>",
-      "Winterhaven":"<ul><li>Thursday: 10am-3pm</li></ul>"
+      "Mt Dora": "<ul><li>Wednesday: 11am-5pm</li></ul><a href='https://www.edenflorida.com/shop/' target='_blank'>Shop Now!</a>",
+      "North Orlando": "<ul><li>Wednesday: 11am-5pm</li></ul><a href='https://www.edenflorida.com/shop/' target='_blank'>Shop Now!</a>",
+      "South Orlando": "<ul><li>Wednesday: 11am-5pm</li></ul><a href='https://www.edenflorida.com/shop/' target='_blank'>Shop Now!</a>",
+      "Riverview": "<ul><li>Thursday: 10am-3pm</li></ul><a href='https://www.edenflorida.com/shop/' target='_blank'>Shop Now!</a>",
+      "East Tampa": "<ul><li>Thursday: 10am-3pm</li></ul><a href='https://www.edenflorida.com/shop/' target='_blank'>Shop Now!</a>",
+      "Lakeland": "<ul><li>Thursday: 10am-3pm</li></ul><a href='https://www.edenflorida.com/shop/' target='_blank'>Shop Now!</a>",
+      "Gainesville": "<ul><li>Friday: 11am-4pm</li></ul><a href='https://www.edenflorida.com/shop/' target='_blank'>Shop Now!</a>"
     }};
 
     // --- Tooltip for Delivery Zones with Zone-Specific Schedule ---
     var popup = new mapboxgl.Popup({{
-      closeButton: false,
+      closeButton: true,
       closeOnClick: false
     }});
 
-    map.on('mouseenter', 'zones_layer', function(e) {{
-      map.getCanvas().style.cursor = 'pointer';
+    map.on('click', 'zones_layer', function(e) {{
       var zoneName = e.features[0].properties.name;
-      // Rename "Mt.Dora" to "Local"
       if(zoneName === "Mt.Dora") {{
         zoneName = "Local";
       }}
-      // Look up the zone-specific schedule. If not found, display a default message.
       var scheduleHTML = scheduleMapping[zoneName] || "<p>No schedule available</p>";
       var popupContent = "<strong>" + zoneName + "</strong>" + scheduleHTML;
       popup.setLngLat(e.lngLat)
@@ -302,11 +258,12 @@ html_template = f"""
            .addTo(map);
     }});
 
-    map.on('mouseleave', 'zones_layer', function() {{
-      map.getCanvas().style.cursor = '';
-      popup.remove();
+    map.on('click', function(e) {{
+      var features = map.queryRenderedFeatures(e.point, {{ layers: ['zones_layer'] }});
+      if (!features.length) {{
+        popup.remove();
+      }}
     }});
-
   }});
 </script>
 </body>
