@@ -15,9 +15,9 @@ start = perf_counter()
 # Data Loading & Conversion
 # --------------------------
 # File paths (insert your file paths below)
-KML_FILE = "/Users/jon/PycharmProjects/workutils/geocoding_locations/flmap/Eden Layout 02.07.25.kml"
-FLORIDA_COUNTIES_GEOJSON = "/Users/jon/PycharmProjects/workutils/geocoding_locations/flmap/simplified_florida_counties.geojson"  # Insert the path to your counties GeoJSON
-ROADWAYS_GEOJSON = "/Users/jon/PycharmProjects/workutils/geocoding_locations/flmap/simplified_roads.geojson"  # Insert the path to your roadways GeoJSON
+KML_FILE = os.getenv("KML_FILE")
+FLORIDA_COUNTIES_GEOJSON = os.getenv("FLORIDA_COUNTIES_GEOJSON")
+ROADWAYS_GEOJSON = os.getenv("ROADWAYS_GEOJSON")
 
 # Read GeoJSON files instead of shapefiles
 fl_counties = gpd.read_file(FLORIDA_COUNTIES_GEOJSON)
@@ -110,17 +110,16 @@ html_template = f"""
       width: 100%;
       background-color: #FAF0E6;
     }}
-    /* Styling for the search bar (geocoder)
-       You can adjust its width, margin, background, border, etc. */
+    /* Styling for the search bar (geocoder) */
     .mapboxgl-ctrl-geocoder {{
-      width: 200px
+      width: 300px;
       min-width: 120px;
       font-size: 16px;
       margin: 12px;
-      background-color: white;   /* Example: change background */
-      border: 2px solid #ccc;      /* Example: add a border */
-      border-radius: 4px;          /* Example: round the corners */
-      padding: 5px;                /* Example: add some padding */
+      background-color: white;
+      border: 2px solid #ccc;
+      border-radius: 4px;
+      padding: 5px;
     }}
     .legend {{
       background-color: rgba(255,255,255,0.8);
@@ -156,22 +155,31 @@ html_template = f"""
       container: 'map',
       style: 'mapbox://styles/mapbox/light-v10',
       center: [-81.76, 27.9944],
-      zoom: 7
+      zoom: 6.3
   }});
-  
+
+  // --- Disable map interactions to lock map position while scrolling ---
+  map.scrollZoom.disable();
+  map.dragPan.disable();
+  map.doubleClickZoom.disable();
+  map.touchZoomRotate.disable();
+
   // --- Geocoder (Search Bar) Control ---
-  // To change the location of the search bar, modify the second parameter here.
-  // Options: 'top-left', 'top-right', 'bottom-left', or 'bottom-right'
   var geocoder = new MapboxGeocoder({{
       accessToken: mapboxgl.accessToken,
       mapboxgl: mapboxgl,
       marker: true,
-      placeholder: 'Search for an address'
+      placeholder: 'Search for an address',
+      flyTo: {{
+          speed: 1.2,
+          curve: 1.42,
+          maxZoom: 8
+      }}
   }});
-  map.addControl(geocoder, 'top-right');  // Changed to 'top-right'
-  
+  map.addControl(geocoder, 'top-right');
+
   map.on('load', function () {{
-    // Add Florida counties as a fill layer
+    // --- Florida Counties Layer ---
     map.addSource('florida_counties', {{
       'type': 'geojson',
       'data': {json.dumps(fl_counties_geojson)}
@@ -188,7 +196,7 @@ html_template = f"""
       }}
     }});
     
-    // Add roads as a line layer
+    // --- Roadways Layer ---
     map.addSource('roads', {{
       'type': 'geojson',
       'data': {json.dumps(roads_geojson)}
@@ -204,7 +212,7 @@ html_template = f"""
       }}
     }});
     
-    // Add delivery zones as a fill layer
+    // --- Delivery Zones Layer ---
     map.addSource('zones', {{
       'type': 'geojson',
       'data': {json.dumps(zones_geojson)}
@@ -221,7 +229,7 @@ html_template = f"""
       }}
     }});
 
-    // Add blurred area layer (everything outside Florida)
+    // --- Blurred Area Layer (everything outside Florida) ---
     map.addSource('blurred', {{
       'type': 'geojson',
       'data': {blurred_area_geojson}
@@ -243,7 +251,7 @@ html_template = f"""
       var bbox = turf.bbox(feature);
       map.fitBounds([[bbox[0], bbox[1]], [bbox[2], bbox[3]]], {{
           padding: 20,
-          maxZoom: 14,
+          maxZoom: 7,
           duration: 2000
       }});
     }});
@@ -254,14 +262,57 @@ html_template = f"""
           map.flyTo({{ center: [-81.76, 27.9944], zoom: 7, duration: 3000 }});
       }}
     }});
+
+    // --- Define Zone-Specific Schedules ---
+    // Create a mapping from zone names to their specific delivery schedules.
+    var scheduleMapping = {{
+      "Mt Dora": "<ul><li>Wednesday: 11am-5pm</li></ul>",
+      "North Orlando": "<ul><li>Wednesday: 11am-5pm</li></ul>",
+      "South Orlando": "<ul><li>Wednesday: 11am-5pm</li></ul>",
+      "Riverview": "<ul><li>Thursday: 10am-3pm</li></ul>",
+      "East Tampa": "<ul><li>Thursday: 10am-3pm</li></ul>",
+      "Lakeland": "<ul><li>Thursday: 10am-3pm</li></ul>",
+      "Gainesville": "<ul><li>Friday: 11am-4pm</li></ul>",
+      "Villages": "<ul><li>Friday: 11am-4pm</li></ul>",
+      "Cocoa": "<ul><li>Saturday: 12pm-4pm</li></ul>",
+      "Gulf Coast": "<ul><li>Sunday: 11am-4pm</li></ul>",
+      "Pinellas Park": "<ul><li>Sunday: 11am-4pm</li></ul>",
+      "Deltona": "<ul><li>Saturday: 12pm-4pm</li></ul>",
+      "Winterhaven":"<ul><li>Thursday: 10am-3pm</li></ul>"
+    }};
+
+    // --- Tooltip for Delivery Zones with Zone-Specific Schedule ---
+    var popup = new mapboxgl.Popup({{
+      closeButton: false,
+      closeOnClick: false
+    }});
+
+    map.on('mouseenter', 'zones_layer', function(e) {{
+      map.getCanvas().style.cursor = 'pointer';
+      var zoneName = e.features[0].properties.name;
+      // Rename "Mt.Dora" to "Local"
+      if(zoneName === "Mt.Dora") {{
+        zoneName = "Local";
+      }}
+      // Look up the zone-specific schedule. If not found, display a default message.
+      var scheduleHTML = scheduleMapping[zoneName] || "<p>No schedule available</p>";
+      var popupContent = "<strong>" + zoneName + "</strong>" + scheduleHTML;
+      popup.setLngLat(e.lngLat)
+           .setHTML(popupContent)
+           .addTo(map);
+    }});
+
+    map.on('mouseleave', 'zones_layer', function() {{
+      map.getCanvas().style.cursor = '';
+      popup.remove();
+    }});
+
   }});
 </script>
 </body>
 </html>
 """
 
-
 with open('mapbox_production_map.html', 'w') as f:
     f.write(html_template)
-
-print("✅ Map saved with search bar and zoom interactivity restored!")
+    print(f"✅ Map saved {f.name}")
