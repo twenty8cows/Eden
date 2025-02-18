@@ -84,7 +84,6 @@ print(f"Data conversion took {abs(perf_counter()-start):.2f} seconds.")
 # --------------------------
 # Replace with your Mapbox Access Token.
 access_token = os.getenv("MAPBOX_TOKEN")
-print(access_token)
 
 html_template = f"""
 <!DOCTYPE html>
@@ -145,7 +144,7 @@ html_template = f"""
     <span>Deliverable</span>
   </div>
   <div style="display: flex; align-items: center;">
-    <div style="background-color: rgba(0,0,0,0.5); width: 15px; height: 15px; margin-right: 10px;"></div>
+    <div style="background-color: rgb(255, 255, 255); width: 15px; height: 15px; margin-right: 10px;"></div>
     <span>Not Deliverable</span>
   </div>
 </div>
@@ -253,7 +252,13 @@ html_template = f"""
       "Riverview": "<ul><li>Thursday: 10am-3pm</li></ul><a href='https://www.edenflorida.com/shop/' target='_blank'>Shop Now!</a>",
       "East Tampa": "<ul><li>Thursday: 10am-3pm</li></ul><a href='https://www.edenflorida.com/shop/' target='_blank'>Shop Now!</a>",
       "Lakeland": "<ul><li>Thursday: 10am-3pm</li></ul><a href='https://www.edenflorida.com/shop/' target='_blank'>Shop Now!</a>",
-      "Gainesville": "<ul><li>Friday: 11am-4pm</li></ul><a href='https://www.edenflorida.com/shop/' target='_blank'>Shop Now!</a>"
+      "Gainesville": "<ul><li>Friday: 11am-4pm</li></ul><a href='https://www.edenflorida.com/shop/' target='_blank'>Shop Now!</a>",
+      "Cocoa": "<ul><li>Saturday: 12pm-4pm</li></ul><a href='https://www.edenflorida.com/shop/' target='_blank'>Shop Now!</a>",
+      "Villages": "<ul><li>Friday: 11am-4pm</li></ul><a href='https://www.edenflorida.com/shop/' target='_blank'>Shop Now!</a>",
+      "Gulf Coast": "<ul><li>Sunday: 11am-4pm</li></ul><a href='https://www.edenflorida.com/shop/' target='_blank'>Shop Now!</a>",
+      "Pinellas Park": "<ul><li>Sunday: 11am-4pm</li></ul><a href='https://www.edenflorida.com/shop/' target='_blank'>Shop Now!</a>",
+      "Deltona": "<ul><li>Saturday: 12pm-4pm</li></ul><a href='https://www.edenflorida.com/shop/' target='_blank'>Shop Now!</a>",
+      "Winterhaven":"<ul><li>Thursday: 10am-3pm</li></ul><a href='https://www.edenflorida.com/shop/' target='_blank'>Shop Now!</a>"
     }};
 
     // --- Tooltip for Delivery Zones with Zone-Specific Schedule ---
@@ -281,6 +286,21 @@ html_template = f"""
       }}
     }});
   }});
+
+  // --- Dad Joke Fetch Function ---
+  function fetchDadJoke() {{
+    fetch('https://icanhazdadjoke.com/', {{
+      headers: {{
+        'Accept': 'application/json'
+      }}
+    }})
+    .then(response => response.json())
+    .then(data => alert("😂 Dad Joke: " + data.joke))
+    .catch(error => alert("Failed to load joke!"));
+  }}
+
+  // --- Attach Joke Function to Button ---
+  document.getElementById('joke-button').addEventListener('click', fetchDadJoke);
 </script>
 </body>
 </html>
