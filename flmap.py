@@ -8,19 +8,29 @@ import os
 
 load_dotenv()
 
+
 start = perf_counter()
 
 # --------------------------
 # Data Loading & Conversion
 # --------------------------
-# File paths (adjust as needed)
+# File paths (insert your file paths below)
 KML_FILE = "/Users/jon/PycharmProjects/workutils/geocoding_locations/flmap/Eden Layout 02.07.25.kml"
-FLORIDA_COUNTIES_SHP = "/Users/jon/PycharmProjects/workutils/geocoding_locations/flmap/Florida_911_Regions/Florida_911_Regions.shp"
-ROADWAYS_SHP = "/Users/jon/PycharmProjects/workutils/geocoding_locations/flmap/localnam/localnam.shp"
+FLORIDA_COUNTIES_GEOJSON = "/Users/jon/PycharmProjects/workutils/geocoding_locations/flmap/simplified_florida_counties.geojson"  # Insert the path to your counties GeoJSON
+ROADWAYS_GEOJSON = "/Users/jon/PycharmProjects/workutils/geocoding_locations/flmap/simplified_roads.geojson"  # Insert the path to your roadways GeoJSON
 
-# Read shapefiles
-fl_counties = gpd.read_file(FLORIDA_COUNTIES_SHP).to_crs("EPSG:4326")
-roads_gdf = gpd.read_file(ROADWAYS_SHP).to_crs("EPSG:4326")
+# Read GeoJSON files instead of shapefiles
+fl_counties = gpd.read_file(FLORIDA_COUNTIES_GEOJSON)
+roads_gdf = gpd.read_file(ROADWAYS_GEOJSON)
+
+# Fix invalid geometries
+if not fl_counties.is_valid.all():
+    print("⚠️ Fixing invalid geometries in Florida counties...")
+    fl_counties["geometry"] = fl_counties["geometry"].buffer(0)
+
+if not roads_gdf.is_valid.all():
+    print("⚠️ Fixing invalid geometries in roads...")
+    roads_gdf["geometry"] = roads_gdf["geometry"].buffer(0)
 
 # Read and parse KML for zones
 tree = ET.parse(KML_FILE)
@@ -30,44 +40,52 @@ ns = {"kml": "http://www.opengis.net/kml/2.2"}
 zones_features = []
 for placemark in root.findall(".//kml:Placemark", ns):
     name_elem = placemark.find("kml:name", ns)
-    name = name_elem.text if name_elem is not None else "Unnamed"
+    name = name_elem.text.strip() if name_elem is not None else "Unnamed"
     polygon = placemark.find(".//kml:Polygon/kml:outerBoundaryIs/kml:LinearRing/kml:coordinates", ns)
     if polygon is not None:
         coords = []
         for coord in polygon.text.strip().split():
-            lon, lat, _ = map(float, coord.split(","))
-            coords.append((lon, lat))
+            parts = coord.split(",")
+            if len(parts) >= 2:
+                lon, lat = map(float, parts[:2])
+                coords.append((lon, lat))
+        if coords and coords[0] != coords[-1]:  # Ensure closed polygon
+            coords.append(coords[0])
         feature = {
             "type": "Feature",
             "geometry": {"type": "Polygon", "coordinates": [coords]},
             "properties": {"name": name}
         }
         zones_features.append(feature)
+
+# Convert to GeoJSON structure
 zones_geojson = {"type": "FeatureCollection", "features": zones_features}
 
-# Convert the shapefiles to GeoJSON dicts
-fl_counties_geojson = json.loads(fl_counties.to_json())
-roads_geojson = json.loads(roads_gdf.to_json())
-
-# Compute Florida's boundary (union of counties)
+# Compute Florida's boundary (union of counties) - now with valid geometries
 florida_boundary = fl_counties.geometry.union_all()
+
 # Create a large US boundary for “blurring” (if needed)
 us_boundary = box(-130, 20, -60, 55)
+
 # Compute the blurred area as everything outside Florida
 blurred_area = us_boundary.difference(florida_boundary)
+
 # Convert to GeoJSON
 blurred_area_geojson = json.dumps({"type": "Feature", "geometry": json.loads(json.dumps(blurred_area.__geo_interface__))})
+
+# Convert GeoDataFrames to JSON
+fl_counties_geojson = json.loads(fl_counties.to_json())
+roads_geojson = json.loads(roads_gdf.to_json())
 
 print(f"Data conversion took {abs(perf_counter()-start):.2f} seconds.")
 
 # --------------------------
-# Build HTML Template with Mapbox GL JS
+# Build HTML Template with Mapbox GL JS and Geocoder
 # --------------------------
 # Replace with your Mapbox Access Token.
 access_token = os.getenv("MAPBOX_TOKEN")
 print(access_token)
 
-# For zone bounding box calculations, include Turf.js via CDN.
 html_template = f"""
 <!DOCTYPE html>
 <html>
@@ -75,12 +93,27 @@ html_template = f"""
   <meta charset="utf-8" />
   <title>Delivery Map</title>
   <meta name="viewport" content="initial-scale=1,maximum-scale=1,user-scalable=no" />
+  <!-- Mapbox GL JS -->
   <script src="https://api.tiles.mapbox.com/mapbox-gl-js/v2.13.0/mapbox-gl.js"></script>
   <link href="https://api.tiles.mapbox.com/mapbox-gl-js/v2.13.0/mapbox-gl.css" rel="stylesheet" />
+  <!-- Turf.js for spatial operations -->
   <script src="https://cdn.jsdelivr.net/npm/@turf/turf@6/turf.min.js"></script>
+  <!-- Mapbox GL Geocoder (Search Bar) -->
+  <script src="https://api.mapbox.com/mapbox-gl-js/plugins/mapbox-gl-geocoder/v4.7.2/mapbox-gl-geocoder.min.js"></script>
+  <link rel="stylesheet" href="https://api.mapbox.com/mapbox-gl-js/plugins/mapbox-gl-geocoder/v4.7.2/mapbox-gl-geocoder.css" type="text/css" />
   <style>
     body {{ margin: 0; padding: 0; }}
-    #map {{ position: absolute; top: 0; bottom: 0; width: 100%; background-color: #FAF0E6; }}
+    #map {{
+      position: absolute;
+      top: 0;
+      bottom: 0;
+      width: 100%;
+      background-color: #FAF0E6;
+    }}
+    .mapboxgl-ctrl-geocoder {{
+      min-width: 50%;
+      margin: 12px;
+    }}
     .legend {{
       background-color: rgba(255,255,255,0.8);
       border-radius: 8px;
@@ -117,6 +150,14 @@ html_template = f"""
       center: [-81.76, 27.9944],
       zoom: 7
   }});
+  
+  // Add Mapbox Geocoder (search bar) control to the map
+  map.addControl(new MapboxGeocoder({{
+      accessToken: mapboxgl.accessToken,
+      mapboxgl: mapboxgl,
+      marker: false,
+      placeholder: 'Search for an address'
+  }}), 'top-left');
   
   map.on('load', function () {{
     // Add Florida counties as a fill layer
@@ -168,7 +209,7 @@ html_template = f"""
         'fill-opacity': 0.8
       }}
     }});
-    
+
     // Add blurred area layer (everything outside Florida)
     map.addSource('blurred', {{
       'type': 'geojson',
@@ -186,10 +227,8 @@ html_template = f"""
     }});
     
     // --- Interactivity: Zone Click Zoom ---
-    // When a user clicks on a delivery zone, zoom to its bounds.
     map.on('click', 'zones_layer', function(e) {{
       var feature = e.features[0];
-      // Compute the bounding box using Turf.js
       var bbox = turf.bbox(feature);
       map.fitBounds([[bbox[0], bbox[1]], [bbox[2], bbox[3]]], {{
           padding: 20,
@@ -197,8 +236,7 @@ html_template = f"""
           duration: 2000
       }});
     }});
-    
-    // When clicking outside a zone, zoom back to default view.
+
     map.on('click', function(e) {{
       var features = map.queryRenderedFeatures(e.point, {{ layers: ['zones_layer'] }});
       if (!features.length) {{
@@ -211,9 +249,7 @@ html_template = f"""
 </html>
 """
 
-# Write the HTML file.
 with open('mapbox_production_map.html', 'w') as f:
     f.write(html_template)
 
-print("Production-ready map saved to mapbox_production_map.html")
-print(f"✅ Conversion took {abs(perf_counter()-start):.2f} seconds")
+print("✅ Map saved with search bar and zoom interactivity restored!")
