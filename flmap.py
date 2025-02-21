@@ -99,7 +99,7 @@ html_template = f"""
   <script src="https://cdn.jsdelivr.net/npm/@turf/turf@6/turf.min.js"></script>
   <!-- Mapbox GL Geocoder (Search Bar) -->
   <script src="https://api.mapbox.com/mapbox-gl-js/plugins/mapbox-gl-geocoder/v4.7.2/mapbox-gl-geocoder.min.js"></script>
-  <link rel="stylesheet" href="https://api.mapbox.com/mapbox-gl-js/plugins/mapbox-gl-geocoder/v4.7.2/mapbox-gl-geocoder.css" type="text/css" />
+  <link rel="stylesheet" href="https://api.tiles.mapbox.com/mapbox-gl-js/plugins/mapbox-gl-geocoder/v4.7.2/mapbox-gl-geocoder.css" type="text/css" />
   <style>
     body {{ margin: 0; padding: 0; }}
     #map {{
@@ -108,11 +108,14 @@ html_template = f"""
       bottom: 0;
       width: 100%;
       background-color: #FAF0E6;
+      /* Allow touch actions for pinch/zoom on mobile */
+      touch-action: pan-x pan-y;
+      user-select: none;
     }}
     /* Styling for the search bar (geocoder) */
     .mapboxgl-ctrl-geocoder {{
-      width: 300px;
-      min-width: 120px;
+      width: 400px;
+      min-width: 180px;
       font-size: 16px;
       margin: 12px;
       background-color: white;
@@ -132,6 +135,11 @@ html_template = f"""
       color: #000;
       width: 220px;
     }}
+
+    .mapboxgl-popup-content {{
+    font-size: 20px;  /* Adjust tooltip size here
+  }}
+
   </style>
 </head>
 <body>
@@ -144,25 +152,46 @@ html_template = f"""
     <span>Deliverable</span>
   </div>
   <div style="display: flex; align-items: center;">
-    <div style="background-color: rgb(255, 255, 255); width: 15px; height: 15px; margin-right: 10px;"></div>
+    <div style="background-color: rgb(255,255,255); width: 15px; height: 15px; margin-right: 10px;"></div>
     <span>Not Deliverable</span>
   </div>
 </div>
 <script>
   mapboxgl.accessToken = '{access_token}';
+  
+  // Detect mobile devices (adjust threshold as needed)
+  var isMobile = window.innerWidth < 768;
+  
+  // Set initial zoom: Lower for mobile, higher for desktop.
+  var initialZoom = isMobile ? 5.2 : 6.36;
+  
+  // Set different center coordinates for mobile vs. desktop.
+  var centerCoordinates = isMobile ? [-84.0000, 27.994] : [-82.4000, 27.9944];
+  
   var map = new mapboxgl.Map({{
       container: 'map',
       style: 'mapbox://styles/mapbox/light-v10',
-      center: [-81.76, 27.9944],
-      zoom: 6.3
+      center: centerCoordinates,
+      zoom: initialZoom
   }});
-
-  // --- Disable map interactions to lock map position while scrolling ---
-  map.scrollZoom.disable();
+  
+  // --- Disable some interactions to lock map position while scrolling ---
   map.dragPan.disable();
+  // Allow pinch/zoom on mobile; disable touch zoom on desktop only.
+  if (!isMobile) {{
+    map.touchZoomRotate.disable();
+  }}
+  // Disable default double-click zoom so we can use our custom handler.
   map.doubleClickZoom.disable();
-  map.touchZoomRotate.disable();
-
+  
+  // Listen for double-click and zoom out to the initial zoom level.
+  map.on('dblclick', function(e) {{
+    map.flyTo({{ zoom: initialZoom }});
+  }});
+  
+  // --- Add Navigation Controls (Zoom Bar) in the upper left ---
+  map.addControl(new mapboxgl.NavigationControl(), 'top-left');
+  
   // --- Geocoder (Search Bar) Control ---
   var geocoder = new MapboxGeocoder({{
       accessToken: mapboxgl.accessToken,
@@ -172,11 +201,11 @@ html_template = f"""
       flyTo: {{
           speed: 1.2,
           curve: 1.42,
-          maxZoom: 8
+          maxZoom: 5
       }}
   }});
   map.addControl(geocoder, 'top-right');
-
+  
   map.on('load', function () {{
     // --- Florida Counties Layer ---
     map.addSource('florida_counties', {{
@@ -207,7 +236,7 @@ html_template = f"""
       'layout': {{}},
       'paint': {{
         'line-color': '#000000',
-        'line-width': 1
+        'line-width': isMobile ? 1.3 : 1
       }}
     }});
     
@@ -227,8 +256,8 @@ html_template = f"""
         'fill-opacity': 0.8
       }}
     }});
-
-    // Add blurred area layer (everything outside Florida)
+  
+    // --- Blurred Area Layer (everything outside Florida) ---
     map.addSource('blurred', {{
       'type': 'geojson',
       'data': {blurred_area_geojson}
@@ -243,30 +272,29 @@ html_template = f"""
         'fill-opacity': 1.0
       }}
     }});
-
-    // --- Define Zone-Specific Schedules ---
+  
+    // --- Define Zone-Specific Schedules & Tooltip for Delivery Zones ---
     var scheduleMapping = {{
-      "Mt Dora": "<ul><li>Wednesday: 11am-5pm</li></ul><a href='https://www.edenflorida.com/shop/' target='_blank'>Shop Now!</a>",
-      "North Orlando": "<ul><li>Wednesday: 11am-5pm</li></ul><a href='https://www.edenflorida.com/shop/' target='_blank'>Shop Now!</a>",
-      "South Orlando": "<ul><li>Wednesday: 11am-5pm</li></ul><a href='https://www.edenflorida.com/shop/' target='_blank'>Shop Now!</a>",
-      "Riverview": "<ul><li>Thursday: 10am-3pm</li></ul><a href='https://www.edenflorida.com/shop/' target='_blank'>Shop Now!</a>",
-      "East Tampa": "<ul><li>Thursday: 10am-3pm</li></ul><a href='https://www.edenflorida.com/shop/' target='_blank'>Shop Now!</a>",
-      "Lakeland": "<ul><li>Thursday: 10am-3pm</li></ul><a href='https://www.edenflorida.com/shop/' target='_blank'>Shop Now!</a>",
-      "Gainesville": "<ul><li>Friday: 11am-4pm</li></ul><a href='https://www.edenflorida.com/shop/' target='_blank'>Shop Now!</a>",
-      "Cocoa": "<ul><li>Saturday: 12pm-4pm</li></ul><a href='https://www.edenflorida.com/shop/' target='_blank'>Shop Now!</a>",
-      "Villages": "<ul><li>Friday: 11am-4pm</li></ul><a href='https://www.edenflorida.com/shop/' target='_blank'>Shop Now!</a>",
-      "Gulf Coast": "<ul><li>Sunday: 11am-4pm</li></ul><a href='https://www.edenflorida.com/shop/' target='_blank'>Shop Now!</a>",
-      "Pinellas Park": "<ul><li>Sunday: 11am-4pm</li></ul><a href='https://www.edenflorida.com/shop/' target='_blank'>Shop Now!</a>",
-      "Deltona": "<ul><li>Saturday: 12pm-4pm</li></ul><a href='https://www.edenflorida.com/shop/' target='_blank'>Shop Now!</a>",
-      "Winterhaven":"<ul><li>Thursday: 10am-3pm</li></ul><a href='https://www.edenflorida.com/shop/' target='_blank'>Shop Now!</a>"
+      "Mt Dora": "<ul><li>Wednesday: 11am-5pm</li></ul><a href='https://www.edenflorida.com/shop/' target='_blank' style='display: block; text-align: center;'>Shop Now!</a>",
+      "North Orlando": "<ul><li>Wednesday: 11am-5pm</li></ul><a href='https://www.edenflorida.com/shop/' target='_blank' style='display: block; text-align: center;'>Shop Now!</a>",
+      "South Orlando": "<ul><li>Wednesday: 11am-5pm</li></ul><a href='https://www.edenflorida.com/shop/' target='_blank' style='display: block; text-align: center;'>Shop Now!</a>",
+      "Riverview": "<ul><li>Thursday: 10am-3pm</li></ul><a href='https://www.edenflorida.com/shop/' target='_blank' style='display: block; text-align: center;'>Shop Now!</a>",
+      "East Tampa": "<ul><li>Thursday: 10am-3pm</li></ul><a href='https://www.edenflorida.com/shop/' target='_blank' style='display: block; text-align: center;'>Shop Now!</a>",
+      "Lakeland": "<ul><li>Thursday: 10am-3pm</li></ul><a href='https://www.edenflorida.com/shop/' target='_blank' style='display: block; text-align: center;'>Shop Now!</a>",
+      "Gainesville": "<ul><li>Friday: 11am-4pm</li></ul><a href='https://www.edenflorida.com/shop/' target='_blank' style='display: block; text-align: center;'>Shop Now!</a>",
+      "Cocoa": "<ul><li>Saturday: 12pm-4pm</li></ul><a href='https://www.edenflorida.com/shop/' target='_blank' style='display: block; text-align: center;'>Shop Now!</a>",
+      "Villages": "<ul><li>Friday: 11am-4pm</li></ul><a href='https://www.edenflorida.com/shop/' target='_blank' style='display: block; text-align: center;'>Shop Now!</a>",
+      "Gulf Coast": "<ul><li>Sunday: 11am-4pm</li></ul><a href='https://www.edenflorida.com/shop/' target='_blank' style='display: block; text-align: center;'>Shop Now!</a>",
+      "Pinellas Park": "<ul><li>Sunday: 11am-4pm</li></ul><a href='https://www.edenflorida.com/shop/' target='_blank' style='display: block; text-align: center;'>Shop Now!</a>",
+      "Deltona": "<ul><li>Saturday: 12pm-4pm</li></ul><a href='https://www.edenflorida.com/shop/' target='_blank' style='display: block; text-align: center;'>Shop Now!</a>",
+      "Winterhaven": "<ul><li>Thursday: 10am-3pm</li></ul><a href='https://www.edenflorida.com/shop/' target='_blank' style='display: block; text-align: center;'>Shop Now!</a>"
     }};
-
-    // --- Tooltip for Delivery Zones with Zone-Specific Schedule ---
+  
     var popup = new mapboxgl.Popup({{
       closeButton: true,
       closeOnClick: false
     }});
-
+  
     map.on('click', 'zones_layer', function(e) {{
       var zoneName = e.features[0].properties.name;
       if(zoneName === "Mt.Dora") {{
@@ -278,7 +306,7 @@ html_template = f"""
            .setHTML(popupContent)
            .addTo(map);
     }});
-
+  
     map.on('click', function(e) {{
       var features = map.queryRenderedFeatures(e.point, {{ layers: ['zones_layer'] }});
       if (!features.length) {{
@@ -286,26 +314,11 @@ html_template = f"""
       }}
     }});
   }});
-
-  // --- Dad Joke Fetch Function ---
-  function fetchDadJoke() {{
-    fetch('https://icanhazdadjoke.com/', {{
-      headers: {{
-        'Accept': 'application/json'
-      }}
-    }})
-    .then(response => response.json())
-    .then(data => alert("😂 Dad Joke: " + data.joke))
-    .catch(error => alert("Failed to load joke!"));
-  }}
-
-  // --- Attach Joke Function to Button ---
-  document.getElementById('joke-button').addEventListener('click', fetchDadJoke);
 </script>
 </body>
 </html>
 """
 
-with open('mapbox_production_map.html', 'w') as f:
+with open('Delivery_zone_map.html', 'w') as f:
     f.write(html_template)
     print(f"✅ Map saved {f.name}")
