@@ -65,8 +65,20 @@ type LinearRing struct {
 	Coordinates string `xml:"coordinates"`
 }
 
+// containsIgnoreCase returns true if s is in the list (case-insensitive).
+func containsIgnoreCase(s string, list []string) bool {
+	sLower := strings.ToLower(s)
+	for _, v := range list {
+		if strings.Contains(sLower, strings.ToLower(v)) {
+			return true
+		}
+	}
+	return false
+}
+
 // convertKMLToGeoJSON reads KML data and converts placemarks to a GeoJSON feature collection.
-func convertKMLToGeoJSON(kmlData []byte) *geojson.FeatureCollection {
+// It skips any placemark whose name contains any of the strings in the exclude slice.
+func convertKMLToGeoJSON(kmlData []byte, exclude []string) *geojson.FeatureCollection {
 	var kml KML
 	if err := xml.Unmarshal(kmlData, &kml); err != nil {
 		log.Fatalf("Error unmarshalling KML: %v", err)
@@ -74,6 +86,12 @@ func convertKMLToGeoJSON(kmlData []byte) *geojson.FeatureCollection {
 	fc := geojson.NewFeatureCollection()
 
 	for _, pm := range kml.Document.Folder.Placemarks {
+		name := strings.TrimSpace(pm.Name)
+		// Skip if the zone's name contains any exclusion string.
+		if containsIgnoreCase(name, exclude) {
+			continue
+		}
+
 		if pm.Polygon != nil {
 			coordsStr := strings.TrimSpace(pm.Polygon.OuterBoundary.LinearRing.Coordinates)
 			coordPairs := strings.Fields(coordsStr)
@@ -99,7 +117,7 @@ func convertKMLToGeoJSON(kmlData []byte) *geojson.FeatureCollection {
 			}
 			poly := orb.Polygon{ring}
 			feat := geojson.NewFeature(poly)
-			feat.Properties["name"] = strings.TrimSpace(pm.Name)
+			feat.Properties["name"] = name
 			fc.Append(feat)
 		} else if pm.Point != nil {
 			coordsStr := strings.TrimSpace(pm.Point.Coordinates)
@@ -114,7 +132,7 @@ func convertKMLToGeoJSON(kmlData []byte) *geojson.FeatureCollection {
 			}
 			pt := orb.Point{lon, lat}
 			feat := geojson.NewFeature(pt)
-			feat.Properties["name"] = strings.TrimSpace(pm.Name)
+			feat.Properties["name"] = name
 			fc.Append(feat)
 		}
 	}
@@ -125,10 +143,10 @@ func convertKMLToGeoJSON(kmlData []byte) *geojson.FeatureCollection {
 func buildHTML(flCounties, roads, zones, blurred string, mapboxToken string) string {
 	// Define zoom values.
 	var mobileMaxZoom float64 = 14.0
-	var mobileInitialZoom float64 = 0.3 // Lower initial zoom for a broader view on mobile
+	var mobileInitialZoom float64 = 0.10
 	var desktopInitialZoom float64 = 6.36
 
-	// For mobile, set center to roughly Florida's center.
+	// For mobile, adjust the center to roughly Florida's center.
 	return fmt.Sprintf(`<!DOCTYPE html>
 <html>
 <head>
@@ -142,7 +160,7 @@ func buildHTML(flCounties, roads, zones, blurred string, mapboxToken string) str
   <!-- Turf.js for spatial operations -->
   <script src="https://cdn.jsdelivr.net/npm/@turf/turf@6/turf.min.js"></script>
   <!-- Mapbox GL Geocoder -->
-  <script src="https://api.mapbox.com/mapbox-gl-js/plugins/mapbox-gl-geocoder/v4.7.2/mapbox-gl-geocoder.min.js"></script>
+  <script src="https://api.tiles.mapbox.com/mapbox-gl-js/plugins/mapbox-gl-geocoder/v4.7.2/mapbox-gl-geocoder.min.js"></script>
   <link rel="stylesheet" href="https://api.tiles.mapbox.com/mapbox-gl-js/plugins/mapbox-gl-geocoder/v4.7.2/mapbox-gl-geocoder.css" type="text/css" />
   <style>
     body { margin: 0; padding: 0; }
@@ -212,7 +230,7 @@ func buildHTML(flCounties, roads, zones, blurred string, mapboxToken string) str
   var isMobile = window.innerWidth < 768;
   var initialZoom = isMobile ? mobileInitialZoom : desktopInitialZoom;
   var maxZoom = isMobile ? mobileMaxZoom : 20;
-  // For mobile, use center roughly at Florida's center.
+  // For mobile, center roughly over Florida's center.
   var centerCoordinates = isMobile ? [-81.5, 28.0] : [-84.4000, 27.9944];
 
   var map = new mapboxgl.Map({
@@ -228,12 +246,16 @@ func buildHTML(flCounties, roads, zones, blurred string, mapboxToken string) str
       map.dragPan.enable();
       map.dragRotate.disable();
       map.touchZoomRotate.disableRotation();
+      // Use a delayed reset of center and zoom after movement ends.
       map.on('moveend', function() {
-          var center = map.getCenter();
-          var desiredLat = 28.0;
-          if (Math.abs(center.lat - desiredLat) > 0.01) {
-              map.setCenter([center.lng, desiredLat]);
-          }
+          setTimeout(function() {
+              map.flyTo({
+                  center: [map.getCenter().lng, 28.0],
+                  zoom: mobileInitialZoom,
+                  speed: 0.5,
+                  curve: 1.42
+              });
+          }, 3000); // Wait 3 seconds after moveend before resetting.
       });
   } else {
       map.dragPan.disable();
@@ -245,7 +267,7 @@ func buildHTML(flCounties, roads, zones, blurred string, mapboxToken string) str
       map.flyTo({ zoom: initialZoom });
   });
   
-  // Prevent zooming beyond maxZoom
+  // Prevent zooming beyond maxZoom.
   map.on('zoomend', function() {
       if (map.getZoom() > maxZoom) {
           map.setZoom(maxZoom);
@@ -336,37 +358,18 @@ func buildHTML(flCounties, roads, zones, blurred string, mapboxToken string) str
       "Orlando North": "<ul><li>Monday: 11am-5pm</li></ul><a href='https://www.edenflorida.com/shop/' target='_blank' style='display: block; text-align: center;'>Shop Now!</a>",
       "Orlando South": "<ul><li>Tuesday: 11am-5pm</li></ul><a href='https://www.edenflorida.com/shop/' target='_blank' style='display: block; text-align: center;'>Shop Now!</a>",
       "Citrus Zone": "<ul><li>Friday: 11am-4pm</li></ul><a href='https://www.edenflorida.com/shop/' target='_blank' style='display: block; text-align: center;'>Shop Now!</a>",
-      "Pinellas County": "<ul><li>Thursday: 12pm-4pm</li></ul><a href='https://www.edenflorida.com/shop/' target='_blank' style='display: block; text-align: center;'>Shop Now!</a>",
+      "Pinellas": "<ul><li>Thursday: 12pm-4pm</li></ul><a href='https://www.edenflorida.com/shop/' target='_blank' style='display: block; text-align: center;'>Shop Now!</a>",
       "Space Coast": "<ul><li>Saturday: 12pm-4pm</li></ul><a href='https://www.edenflorida.com/shop/' target='_blank' style='display: block; text-align: center;'>Shop Now!</a>",
-      "Golf Coast": "<ul><li>Sunday: 11am-4pm</li></ul><a href='https://www.edenflorida.com/shop/' target='_blank' style='display: block; text-align: center;'>Shop Now!</a>",
+      "Gulf Coast": "<ul><li>Sunday: 11am-4pm</li></ul><a href='https://www.edenflorida.com/shop/' target='_blank' style='display: block; text-align: center;'>Shop Now!</a>",
       "Charlotte County": "<ul><li>Sunday: 11am-4pm</li></ul><a href='https://www.edenflorida.com/shop/' target='_blank' style='display: block; text-align: center;'>Shop Now!</a>",
       "Volusia County": "<ul><li>Wednesday: 12pm-4pm</li></ul><a href='https://www.edenflorida.com/shop/' target='_blank' style='display: block; text-align: center;'>Shop Now!</a>",
+      "Tampa": "<ul><li>Thursday: 12pm-4pm</li></ul><a href='https://www.edenflorida.com/shop/' target='_blank' style='display: block; text-align: center;'>Shop Now!</a>",
+      // "West Palm Beach": "<ul><li></li></ul><a href='https://www.edenflorida.com/shop/' target='_blank' style='display: block; text-align: center;'>Shop Now!</a>",
     };
 
     var popup = new mapboxgl.Popup({
       closeButton: true,
       closeOnClick: false
-    });
-
-    var geocoderActive = false;
-
-    geocoder.on('result', function(e) {
-      // When a geocoder result is obtained, disable the moveend reset temporarily.
-      geocoderActive = true;
-      setTimeout(function() {
-        geocoderActive = false;
-      }, 10000); // Adjust timeout as needed
-    });
-
-    map.on('moveend', function() {
-      // Only reset center if we're on mobile and no geocoder result is active.
-      if (isMobile && !geocoderActive) {
-          var center = map.getCenter();
-          var desiredLat = 28.0;
-          if (Math.abs(center.lat - desiredLat) > 0.01) {
-              map.setCenter([center.lng, desiredLat]);
-          }
-      }
     });
 
     map.on('click', 'zones_layer', function(e) {
@@ -397,7 +400,7 @@ func buildHTML(flCounties, roads, zones, blurred string, mapboxToken string) str
 func main() {
 	godotenv.Load()
 
-	kmlFile := "/Users/jon/fl_map_go/Eden_map_250222.kml"
+	kmlFile := "/Users/jon/fl_map_go/Eden_delivery_zones_250224.kml"
 	flCountiesGeoJSON := os.Getenv("FLORIDA_COUNTIES_GEOJSON")
 	roadsGeoJSON := os.Getenv("ROADWAYS_GEOJSON")
 	mapboxToken := os.Getenv("MAPBOX_TOKEN")
@@ -412,7 +415,11 @@ func main() {
 	if err != nil {
 		log.Fatalf("Error reading KML file: %v", err)
 	}
-	zonesFC := convertKMLToGeoJSON(kmlData)
+
+	// Add Zone names to excludeZones to exclude zones from rendering, still add zone delivery times and names to scheduleMapping to ensure that
+	// delivery zones are still accounted for when removed from exclusion slice.
+	excludeZones := []string{"west palm"}
+	zonesFC := convertKMLToGeoJSON(kmlData, excludeZones)
 	zonesJSON, err := zonesFC.MarshalJSON()
 	if err != nil {
 		log.Fatalf("Error marshalling zones GeoJSON: %v", err)
