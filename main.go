@@ -143,7 +143,7 @@ func convertKMLToGeoJSON(kmlData []byte, exclude []string) *geojson.FeatureColle
 func buildHTML(flCounties, roads, zones, blurred string, mapboxToken string) string {
 	// Define zoom values.
 	var mobileMaxZoom float64 = 14.0
-	var mobileInitialZoom float64 = 0.10
+	var mobileInitialZoom float64 = 1.0
 	var desktopInitialZoom float64 = 6.36
 
 	// For mobile, adjust the center to roughly Florida's center.
@@ -231,7 +231,7 @@ func buildHTML(flCounties, roads, zones, blurred string, mapboxToken string) str
   var initialZoom = isMobile ? mobileInitialZoom : desktopInitialZoom;
   var maxZoom = isMobile ? mobileMaxZoom : 20;
   // For mobile, center roughly over Florida's center.
-  var centerCoordinates = isMobile ? [-81.5, 28.0] : [-84.4000, 27.9944];
+  var centerCoordinates = isMobile ? [-81.5, 25.0] : [-84.4000, 27.9944];
 
   var map = new mapboxgl.Map({
       container: 'map',
@@ -239,40 +239,40 @@ func buildHTML(flCounties, roads, zones, blurred string, mapboxToken string) str
       center: centerCoordinates,
       zoom: initialZoom,
       maxZoom: maxZoom,
+      pitch: 0,
+      minPitch: 0,
+      maxPitch: 0,
       maxBounds: [[-89.7, 24.3], [-75.8, 31.1]]
   });
 
   if (isMobile) {
-      map.dragPan.enable();
-      map.dragRotate.disable();
-      map.touchZoomRotate.disableRotation();
-      // Use a delayed reset of center and zoom after movement ends.
-      map.on('moveend', function() {
-          setTimeout(function() {
-              map.flyTo({
-                  center: [map.getCenter().lng, 28.0],
-                  zoom: mobileInitialZoom,
-                  speed: 0.5,
-                  curve: 1.42
-              });
-          }, 60000); // Wait 60 seconds after moveend before resetting.
-      });
-  } else {
-      map.dragPan.disable();
-      map.touchZoomRotate.disable();
+    map.dragPan.enable();
+    map.dragRotate.disable();
+    map.touchZoomRotate.disableRotation();
+    
+    // On initial load, adjust the view to show the entire state using fitBounds.
+    var floridaBounds = [[-89.7, 24.3], [-75.8, 31.1]];
+    map.fitBounds(floridaBounds, {
+        padding: { top: 20, bottom: 20, left: 20, right: 20 },
+        duration: 0
+    });
+    
+    // Then, if the user pans or zooms, wait 60 seconds before resetting to the home view.
+    map.on('moveend', function() {
+        setTimeout(function() {
+            map.flyTo({
+                center: [map.getCenter().lng, 28.0],
+                zoom: mobileInitialZoom,
+                speed: 0.5,
+                curve: 1.42
+            });
+        }, 120000); // 2 minute delay
+    });
+} else {
+    map.dragPan.disable();
+    map.touchZoomRotate.disable();
   }
 
-  map.doubleClickZoom.disable();
-  map.on('dblclick', function(e) {
-      map.flyTo({ zoom: initialZoom });
-  });
-  
-  // Prevent zooming beyond maxZoom.
-  map.on('zoomend', function() {
-      if (map.getZoom() > maxZoom) {
-          map.setZoom(maxZoom);
-      }
-  });
 
   map.addControl(new mapboxgl.NavigationControl(), 'top-left');
 
@@ -280,7 +280,8 @@ func buildHTML(flCounties, roads, zones, blurred string, mapboxToken string) str
       accessToken: mapboxgl.accessToken,
       mapboxgl: mapboxgl,
       marker: true,
-      placeholder: 'Search for an address',
+      placeholder: 'Enter an Address',
+      minLength: 5,
       flyTo: {
           speed: 1.2,
           curve: 1.42,
@@ -364,7 +365,7 @@ func buildHTML(flCounties, roads, zones, blurred string, mapboxToken string) str
       "Charlotte County": "<ul><li>Sunday: 11am-4pm</li></ul><a href='https://www.edenflorida.com/shop/' target='_blank' style='display: block; text-align: center;'>Shop Now!</a>",
       "Volusia County": "<ul><li>Wednesday: 12pm-4pm</li></ul><a href='https://www.edenflorida.com/shop/' target='_blank' style='display: block; text-align: center;'>Shop Now!</a>",
       "Tampa": "<ul><li>Thursday: 12pm-4pm</li></ul><a href='https://www.edenflorida.com/shop/' target='_blank' style='display: block; text-align: center;'>Shop Now!</a>",
-      "West Palm": "<ul><li>Last Wednesday of Every Month</li><li>Next Delivery Date: (2/26/25)</li></ul><a href='https://www.edenflorida.com/shop/' target='_blank' style='display: block; text-align: center;'>Shop Now!</a>",
+      "West Palm": "<ul><li>First Friday of each Month</li><li>Next Delivery Date: (3/07/25)</li></ul><a href='https://www.edenflorida.com/shop/' target='_blank' style='display: block; text-align: center;'>Shop Now!</a>",
     };
 
     var popup = new mapboxgl.Popup({
