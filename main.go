@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"encoding/xml"
 	"fmt"
-	"io/ioutil"
 	"log"
 	"os"
 	"strconv"
@@ -283,7 +282,7 @@ func buildHTML(flCounties, roads, zones, blurred string, mapboxToken string) str
       placeholder: 'Enter an Address',
       minLength: 5,
       flyTo: {
-          speed: 1.2,
+          speed: 1.2, 
           curve: 1.42,
           maxZoom: 5
       }
@@ -412,7 +411,7 @@ func main() {
 
 	start := time.Now()
 
-	kmlData, err := ioutil.ReadFile(kmlFile)
+	kmlData, err := os.ReadFile(kmlFile)
 	if err != nil {
 		log.Fatalf("Error reading KML file: %v", err)
 	}
@@ -426,7 +425,7 @@ func main() {
 		log.Fatalf("Error marshalling zones GeoJSON: %v", err)
 	}
 
-	flCountiesData, err := ioutil.ReadFile(flCountiesGeoJSON)
+	flCountiesData, err := os.ReadFile(flCountiesGeoJSON)
 	if err != nil {
 		log.Fatalf("Error reading Florida Counties GeoJSON: %v", err)
 	}
@@ -439,7 +438,7 @@ func main() {
 		log.Fatalf("Error marshalling Florida Counties GeoJSON: %v", err)
 	}
 
-	roadsData, err := ioutil.ReadFile(roadsGeoJSON)
+	roadsData, err := os.ReadFile(roadsGeoJSON)
 	if err != nil {
 		log.Fatalf("Error reading Roads GeoJSON: %v", err)
 	}
@@ -475,7 +474,7 @@ func main() {
 	htmlContent := buildHTML(string(flCountiesJSON), string(roadsJSON), string(zonesJSON), string(blurredJSON), mapboxToken)
 
 	outputFile := "Delivery_zone_map.html"
-	err = ioutil.WriteFile(outputFile, []byte(htmlContent), 0644)
+	err = os.WriteFile(outputFile, []byte(htmlContent), 0644)
 	if err != nil {
 		log.Fatalf("Error writing HTML file: %v", err)
 	}
