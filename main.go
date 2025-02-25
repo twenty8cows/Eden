@@ -255,7 +255,7 @@ func buildHTML(flCounties, roads, zones, blurred string, mapboxToken string) str
                   speed: 0.5,
                   curve: 1.42
               });
-          }, 3000); // Wait 3 seconds after moveend before resetting.
+          }, 60000); // Wait 60 seconds after moveend before resetting.
       });
   } else {
       map.dragPan.disable();
@@ -364,7 +364,7 @@ func buildHTML(flCounties, roads, zones, blurred string, mapboxToken string) str
       "Charlotte County": "<ul><li>Sunday: 11am-4pm</li></ul><a href='https://www.edenflorida.com/shop/' target='_blank' style='display: block; text-align: center;'>Shop Now!</a>",
       "Volusia County": "<ul><li>Wednesday: 12pm-4pm</li></ul><a href='https://www.edenflorida.com/shop/' target='_blank' style='display: block; text-align: center;'>Shop Now!</a>",
       "Tampa": "<ul><li>Thursday: 12pm-4pm</li></ul><a href='https://www.edenflorida.com/shop/' target='_blank' style='display: block; text-align: center;'>Shop Now!</a>",
-      // "West Palm Beach": "<ul><li></li></ul><a href='https://www.edenflorida.com/shop/' target='_blank' style='display: block; text-align: center;'>Shop Now!</a>",
+      "West Palm": "<ul><li>Last Wednesday of Every Month</li><li>Next Delivery Date: (2/26/25)</li></ul><a href='https://www.edenflorida.com/shop/' target='_blank' style='display: block; text-align: center;'>Shop Now!</a>",
     };
 
     var popup = new mapboxgl.Popup({
@@ -417,8 +417,8 @@ func main() {
 	}
 
 	// Add Zone names to excludeZones to exclude zones from rendering, still add zone delivery times and names to scheduleMapping to ensure that
-	// delivery zones are still accounted for when removed from exclusion slice.
-	excludeZones := []string{"west palm"}
+	// delivery zones are still accounted for when removed from exclusion slice. Set to "None" to include all
+	excludeZones := []string{"none"}
 	zonesFC := convertKMLToGeoJSON(kmlData, excludeZones)
 	zonesJSON, err := zonesFC.MarshalJSON()
 	if err != nil {
