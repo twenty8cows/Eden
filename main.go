@@ -86,11 +86,9 @@ func convertKMLToGeoJSON(kmlData []byte, exclude []string) *geojson.FeatureColle
 
 	for _, pm := range kml.Document.Folder.Placemarks {
 		name := strings.TrimSpace(pm.Name)
-		// Skip if the zone's name contains any exclusion string.
 		if containsIgnoreCase(name, exclude) {
 			continue
 		}
-
 		if pm.Polygon != nil {
 			coordsStr := strings.TrimSpace(pm.Polygon.OuterBoundary.LinearRing.Coordinates)
 			coordPairs := strings.Fields(coordsStr)
@@ -142,7 +140,7 @@ func convertKMLToGeoJSON(kmlData []byte, exclude []string) *geojson.FeatureColle
 func buildHTML(flCounties, roads, zones, blurred string, mapboxToken string) string {
 	// Define zoom values.
 	var mobileMaxZoom float64 = 14.0
-	var mobileInitialZoom float64 = 1.0
+	var mobileInitialZoom float64 = 7.0
 	var desktopInitialZoom float64 = 6.36
 
 	// For mobile, adjust the center to roughly Florida's center.
@@ -230,7 +228,7 @@ func buildHTML(flCounties, roads, zones, blurred string, mapboxToken string) str
   var initialZoom = isMobile ? mobileInitialZoom : desktopInitialZoom;
   var maxZoom = isMobile ? mobileMaxZoom : 20;
   // For mobile, center roughly over Florida's center.
-  var centerCoordinates = isMobile ? [-81.5, 25.0] : [-84.4000, 27.9944];
+  var centerCoordinates = isMobile ? [-81.5, 28.0] : [-84.4000, 27.9944];
 
   var map = new mapboxgl.Map({
       container: 'map',
@@ -245,35 +243,46 @@ func buildHTML(flCounties, roads, zones, blurred string, mapboxToken string) str
   });
 
   if (isMobile) {
-    map.dragPan.enable();
-    map.dragRotate.disable();
-    map.touchZoomRotate.disableRotation();
-    
-    // On initial load, adjust the view to show the entire state using fitBounds.
-    var floridaBounds = [[-89.7, 24.3], [-75.8, 31.1]];
-    map.fitBounds(floridaBounds, {
-        padding: { top: 20, bottom: 20, left: 20, right: 20 },
-        duration: 0
-    });
-    
-    // Then, if the user pans or zooms, wait 60 seconds before resetting to the home view.
-    map.on('moveend', function() {
-        setTimeout(function() {
-            map.flyTo({
-                center: [map.getCenter().lng, 28.0],
-                zoom: mobileInitialZoom,
-                speed: 0.5,
-                curve: 1.42
-            });
-        }, 120000); // 2 minute delay
-    });
-} else {
-    map.dragPan.disable();
-    map.touchZoomRotate.disable();
+      map.dragPan.enable();
+      map.dragRotate.disable();
+      map.touchZoomRotate.disableRotation();
+      
+      var floridaBounds = [[-89.7, 24.3], [-75.8, 31.1]];
+      map.fitBounds(floridaBounds, {
+          padding: { top: 20, bottom: 20, left: 20, right: 20 },
+          duration: 0
+      });
+      
+      map.on('moveend', function() {
+          setTimeout(function() {
+              map.flyTo({
+                  center: [map.getCenter().lng, 28.0],
+                  zoom: mobileInitialZoom,
+                  speed: 0.5,
+                  curve: 1.42
+              });
+          }, 120000); // 2 minute delay
+      });
+  } else {
+      map.dragPan.disable();
+      map.touchZoomRotate.disable();
   }
 
-
   map.addControl(new mapboxgl.NavigationControl(), 'top-left');
+
+  // Define schedule mapping globally so it is available in geocoder result handler.
+  var scheduleMapping = {
+      "Orlando North": "<ul><li>Monday: 11am-5pm</li></ul><a href='https://www.edenflorida.com/shop/' target='_blank' style='display: block; text-align: center;'>Shop Now!</a>",
+      "Orlando South": "<ul><li>Tuesday: 11am-5pm</li></ul><a href='https://www.edenflorida.com/shop/' target='_blank' style='display: block; text-align: center;'>Shop Now!</a>",
+      "Citrus Zone": "<ul><li>Friday: 11am-4pm</li></ul><a href='https://www.edenflorida.com/shop/' target='_blank' style='display: block; text-align: center;'>Shop Now!</a>",
+      "Pinellas": "<ul><li>Thursday: 12pm-4pm</li></ul><a href='https://www.edenflorida.com/shop/' target='_blank' style='display: block; text-align: center;'>Shop Now!</a>",
+      "Space Coast": "<ul><li>Saturday: 12pm-4pm</li></ul><a href='https://www.edenflorida.com/shop/' target='_blank' style='display: block; text-align: center;'>Shop Now!</a>",
+      "Gulf Coast": "<ul><li>Sunday: 11am-4pm</li></ul><a href='https://www.edenflorida.com/shop/' target='_blank' style='display: block; text-align: center;'>Shop Now!</a>",
+      "Charlotte County": "<ul><li>Sunday: 11am-4pm</li></ul><a href='https://www.edenflorida.com/shop/' target='_blank' style='display: block; text-align: center;'>Shop Now!</a>",
+      "Volusia County": "<ul><li>Wednesday: 12pm-4pm</li></ul><a href='https://www.edenflorida.com/shop/' target='_blank' style='display: block; text-align: center;'>Shop Now!</a>",
+      "Tampa": "<ul><li>Thursday: 12pm-4pm</li></ul><a href='https://www.edenflorida.com/shop/' target='_blank' style='display: block; text-align: center;'>Shop Now!</a>",
+      "West Palm": "<ul><li>First Friday of each Month</li></ul><a href='https://www.edenflorida.com/shop/' target='_blank' style='display: block; text-align: center;'>Shop Now!</a>"
+  };
 
   var geocoder = new MapboxGeocoder({
       accessToken: mapboxgl.accessToken,
@@ -282,12 +291,47 @@ func buildHTML(flCounties, roads, zones, blurred string, mapboxToken string) str
       placeholder: 'Enter an Address',
       minLength: 5,
       flyTo: {
-          speed: 1.2, 
+          speed: 1.2,
+          zoom: 10,
           curve: 1.42,
-          maxZoom: 5
+          maxZoom: 4
       }
   });
   map.addControl(geocoder, 'top-right');
+
+  // When a geocoder result is obtained, check if the point is within a delivery zone.
+  geocoder.on('result', function(e) {
+    var point = e.result.geometry.coordinates;
+    var zonesData = map.getSource('zones')._data;
+    var foundZone = null;
+    zonesData.features.forEach(function(feature) {
+        if (turf.booleanPointInPolygon(point, feature)) {
+            foundZone = feature;
+        }
+    });
+    if (foundZone) {
+        var zoneName = foundZone.properties.name;
+        var scheduleHTML = scheduleMapping[zoneName] || "<p>No schedule available</p>";
+        var popupContent = "<strong>" + zoneName + "</strong>" + scheduleHTML;
+        new mapboxgl.Popup()
+            .setLngLat(point)
+            .setHTML(popupContent)
+            .addTo(map);
+    } else {
+        // If no zone is found, display the generic pop-up
+        new mapboxgl.Popup()
+            .setLngLat(point)
+            .setHTML("<strong>We aren't delivering here yet, but stay tuned!</strong>")
+            .addTo(map);
+    }
+    map.flyTo({
+        center: point,
+        zoom: 10,
+        speed: 1.2,
+        curve: 1.42
+    });
+});
+
 
   map.on('load', function () {
     map.addSource('blurred', {
@@ -354,40 +398,24 @@ func buildHTML(flCounties, roads, zones, blurred string, mapboxToken string) str
 
     console.log("Zones data:", map.getSource('zones')._data);
 
-    var scheduleMapping = {
-      "Orlando North": "<ul><li>Monday: 11am-5pm</li></ul><a href='https://www.edenflorida.com/shop/' target='_blank' style='display: block; text-align: center;'>Shop Now!</a>",
-      "Orlando South": "<ul><li>Tuesday: 11am-5pm</li></ul><a href='https://www.edenflorida.com/shop/' target='_blank' style='display: block; text-align: center;'>Shop Now!</a>",
-      "Citrus Zone": "<ul><li>Friday: 11am-4pm</li></ul><a href='https://www.edenflorida.com/shop/' target='_blank' style='display: block; text-align: center;'>Shop Now!</a>",
-      "Pinellas": "<ul><li>Thursday: 12pm-4pm</li></ul><a href='https://www.edenflorida.com/shop/' target='_blank' style='display: block; text-align: center;'>Shop Now!</a>",
-      "Space Coast": "<ul><li>Saturday: 12pm-4pm</li></ul><a href='https://www.edenflorida.com/shop/' target='_blank' style='display: block; text-align: center;'>Shop Now!</a>",
-      "Gulf Coast": "<ul><li>Sunday: 11am-4pm</li></ul><a href='https://www.edenflorida.com/shop/' target='_blank' style='display: block; text-align: center;'>Shop Now!</a>",
-      "Charlotte County": "<ul><li>Sunday: 11am-4pm</li></ul><a href='https://www.edenflorida.com/shop/' target='_blank' style='display: block; text-align: center;'>Shop Now!</a>",
-      "Volusia County": "<ul><li>Wednesday: 12pm-4pm</li></ul><a href='https://www.edenflorida.com/shop/' target='_blank' style='display: block; text-align: center;'>Shop Now!</a>",
-      "Tampa": "<ul><li>Thursday: 12pm-4pm</li></ul><a href='https://www.edenflorida.com/shop/' target='_blank' style='display: block; text-align: center;'>Shop Now!</a>",
-      "West Palm": "<ul><li>First Friday of each Month</li></ul><a href='https://www.edenflorida.com/shop/' target='_blank' style='display: block; text-align: center;'>Shop Now!</a>",
-    };
-
-    var popup = new mapboxgl.Popup({
-      closeButton: true,
-      closeOnClick: false
-    });
-
     map.on('click', 'zones_layer', function(e) {
       var zoneName = e.features[0].properties.name;
       if (zoneName === "Mt.Dora") {
-        zoneName = "Local";
+          zoneName = "Local";
       }
       var scheduleHTML = scheduleMapping[zoneName] || "<p>No schedule available</p>";
       var popupContent = "<strong>" + zoneName + "</strong>" + scheduleHTML;
-      popup.setLngLat(e.lngLat)
-           .setHTML(popupContent)
-           .addTo(map);
+      new mapboxgl.Popup()
+          .setLngLat(e.lngLat)
+          .setHTML(popupContent)
+          .addTo(map);
     });
 
     map.on('click', function(e) {
       var features = map.queryRenderedFeatures(e.point, { layers: ['zones_layer'] });
       if (!features.length) {
-        popup.remove();
+          // Close popup if click is not on a zone.
+          // (You might want to clear or reuse your popup object.)
       }
     });
   });
@@ -416,9 +444,8 @@ func main() {
 		log.Fatalf("Error reading KML file: %v", err)
 	}
 
-	// Add Zone names to excludeZones to exclude zones from rendering, still add zone delivery times and names to scheduleMapping to ensure that
-	// delivery zones are still accounted for when removed from exclusion slice. Set to "None" to include all
-	excludeZones := []string{"none"}
+	// Exclude zones using a slice; for example, to exclude any zone containing "west palm"
+	excludeZones := []string{"None"}
 	zonesFC := convertKMLToGeoJSON(kmlData, excludeZones)
 	zonesJSON, err := zonesFC.MarshalJSON()
 	if err != nil {
