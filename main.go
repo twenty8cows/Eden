@@ -272,6 +272,8 @@ func buildHTML(flCounties, roads, zones, blurred string, mapboxToken string) str
 
   // Define schedule mapping globally so it is available in geocoder result handler.
   var scheduleMapping = {
+
+      "Mt Dora": "<ul><li>Mondays & Tuesdays: 11am-5pm</li></ul><a href='https://www.edenflorida.com/shop/' target='_blank' style='display: block; text-align: center;'>Shop Now!</a>",
       "Orlando North": "<ul><li>Monday: 11am-5pm</li></ul><a href='https://www.edenflorida.com/shop/' target='_blank' style='display: block; text-align: center;'>Shop Now!</a>",
       "Orlando South": "<ul><li>Tuesday: 11am-5pm</li></ul><a href='https://www.edenflorida.com/shop/' target='_blank' style='display: block; text-align: center;'>Shop Now!</a>",
       "Citrus Zone": "<ul><li>Friday: 11am-4pm</li></ul><a href='https://www.edenflorida.com/shop/' target='_blank' style='display: block; text-align: center;'>Shop Now!</a>",
@@ -281,7 +283,8 @@ func buildHTML(flCounties, roads, zones, blurred string, mapboxToken string) str
       "Charlotte County": "<ul><li>Sunday: 11am-4pm</li></ul><a href='https://www.edenflorida.com/shop/' target='_blank' style='display: block; text-align: center;'>Shop Now!</a>",
       "Volusia County": "<ul><li>Wednesday: 12pm-4pm</li></ul><a href='https://www.edenflorida.com/shop/' target='_blank' style='display: block; text-align: center;'>Shop Now!</a>",
       "Tampa": "<ul><li>Thursday: 12pm-4pm</li></ul><a href='https://www.edenflorida.com/shop/' target='_blank' style='display: block; text-align: center;'>Shop Now!</a>",
-      "West Palm": "<ul><li>First Friday of each Month</li></ul><a href='https://www.edenflorida.com/shop/' target='_blank' style='display: block; text-align: center;'>Shop Now!</a>"
+      "Pasco": "<ul><li>Thursday: 12pm-4pm</li></ul><a href='https://www.edenflorida.com/shop/' target='_blank' style='display: block; text-align: center;'>Shop Now!</a>",
+      "West Palm": "<ul><li>Wednesday: 12pm-4pm</li></ul><a href='https://www.edenflorida.com/shop/' target='_blank' style='display: block; text-align: center;'>Shop Now!</a>"
   };
 
   var geocoder = new MapboxGeocoder({
@@ -299,8 +302,17 @@ func buildHTML(flCounties, roads, zones, blurred string, mapboxToken string) str
   });
   map.addControl(geocoder, 'top-right');
 
-  // When a geocoder result is obtained, check if the point is within a delivery zone.
-  geocoder.on('result', function(e) {
+  // Determine orientation: portrait if height > width, landscape otherwise.
+var isPortrait = window.innerHeight > window.innerWidth;
+
+// Set different zoom levels for portrait vs landscape.
+var orientationZoom = isPortrait ? 8 : 10;  // Adjust these values as needed
+
+// Use orientationZoom for the initial zoom (or when calling flyTo)
+var initialZoom = isMobile ? orientationZoom : desktopInitialZoom;
+
+// Now, for example, in your flyTo call inside the geocoder result:
+geocoder.on('result', function(e) {
     var point = e.result.geometry.coordinates;
     var zonesData = map.getSource('zones')._data;
     var foundZone = null;
@@ -318,7 +330,6 @@ func buildHTML(flCounties, roads, zones, blurred string, mapboxToken string) str
             .setHTML(popupContent)
             .addTo(map);
     } else {
-        // If no zone is found, display the generic pop-up
         new mapboxgl.Popup()
             .setLngLat(point)
             .setHTML("<strong>We aren't delivering here yet, but stay tuned!</strong>")
@@ -326,7 +337,7 @@ func buildHTML(flCounties, roads, zones, blurred string, mapboxToken string) str
     }
     map.flyTo({
         center: point,
-        zoom: 10,
+        zoom: orientationZoom,
         speed: 1.2,
         curve: 1.42
     });
@@ -428,7 +439,7 @@ func buildHTML(flCounties, roads, zones, blurred string, mapboxToken string) str
 func main() {
 	godotenv.Load()
 
-	kmlFile := "/Users/jon/fl_map_go/Eden_delivery_zones_250224.kml"
+	kmlFile := "/Users/jon/fl_map_go/Eden_delivery_zones250303.kml"
 	flCountiesGeoJSON := os.Getenv("FLORIDA_COUNTIES_GEOJSON")
 	roadsGeoJSON := os.Getenv("ROADWAYS_GEOJSON")
 	mapboxToken := os.Getenv("MAPBOX_TOKEN")
