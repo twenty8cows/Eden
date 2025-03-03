@@ -226,7 +226,7 @@ func buildHTML(flCounties, roads, zones, blurred string, mapboxToken string) str
   var isPortrait = window.innerHeight > window.innerWidth;
 
   // Define center coordinate presets
-  var mobilePortraitCenter = [-80.5, 27.0];
+  var mobilePortraitCenter = [-77.5, 27.0];
   var mobileLandscapeCenter = [-81.5, 26.0];
   var desktopCenter = [-84.4, 27.9944];
 
