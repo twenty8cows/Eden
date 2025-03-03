@@ -241,7 +241,7 @@ func buildHTML(flCounties, roads, zones, blurred string, mapboxToken string) str
   var maxZoom = isMobile ? mobileMaxZoom : 20;
   
   // For mobile, center roughly over Florida's center.
-  var centerCoordinates = isMobile ? [-81.5, 24.0] : [-84.4000, 27.9944];
+  var centerCoordinates = isMobile ? [-81.5, 21.0] : [-84.4000, 27.9944];
 
   // Use a wider maxBounds for better zooming out capability
   var mapBounds = [[-95, 20], [-70, 35]]; // Wider bounds beyond just Florida
