@@ -136,12 +136,13 @@ func convertKMLToGeoJSON(kmlData []byte, exclude []string) *geojson.FeatureColle
 	return fc
 }
 
-// buildHTML creates the HTML string embedding the GeoJSON data and Mapbox GL JS configuration.
 func buildHTML(flCounties, roads, zones, blurred string, mapboxToken string) string {
 	// Define zoom values.
 	var mobileMaxZoom float64 = 14.0
-	var mobileInitialZoom float64 = 7.0
 	var desktopInitialZoom float64 = 6.36
+	var portraitZoom float64 = 3.0
+	var landscapeZoom float64 = 7.0
+	var minZoom float64 = 2.0 // Allow zooming out more
 
 	// For mobile, adjust the center to roughly Florida's center.
 	return fmt.Sprintf(`<!DOCTYPE html>
@@ -221,14 +222,29 @@ func buildHTML(flCounties, roads, zones, blurred string, mapboxToken string) str
 <script>
   mapboxgl.accessToken = '%s';
 
-  var mobileMaxZoom = %f;
-  var mobileInitialZoom = %f;
-  var desktopInitialZoom = %f;
+  // Determine device type and orientation
   var isMobile = window.innerWidth < 768;
-  var initialZoom = isMobile ? mobileInitialZoom : desktopInitialZoom;
+  var isPortrait = window.innerHeight > window.innerWidth;
+  
+  // Set zoom levels based on device and orientation
+  var mobileMaxZoom = %f;
+  var portraitZoom = %f;
+  var landscapeZoom = %f;
+  var desktopInitialZoom = %f;
+  var minZoom = %f;
+  
+  // Choose the appropriate zoom level
+  var initialZoom = isMobile 
+      ? (isPortrait ? portraitZoom : landscapeZoom) 
+      : desktopInitialZoom;
+  
   var maxZoom = isMobile ? mobileMaxZoom : 20;
+  
   // For mobile, center roughly over Florida's center.
-  var centerCoordinates = isMobile ? [-81.5, 28.0] : [-84.4000, 27.9944];
+  var centerCoordinates = isMobile ? [-81.5, 26.0] : [-84.4000, 27.9944];
+
+  // Use a wider maxBounds for better zooming out capability
+  var mapBounds = [[-95, 20], [-70, 35]]; // Wider bounds beyond just Florida
 
   var map = new mapboxgl.Map({
       container: 'map',
@@ -236,28 +252,60 @@ func buildHTML(flCounties, roads, zones, blurred string, mapboxToken string) str
       center: centerCoordinates,
       zoom: initialZoom,
       maxZoom: maxZoom,
+      minZoom: minZoom, // Allow zooming out more
       pitch: 0,
       minPitch: 0,
       maxPitch: 0,
-      maxBounds: [[-89.7, 24.3], [-75.8, 31.1]]
+      maxBounds: mapBounds // Wider bounds
   });
+
+  // Debugging info
+  console.log("Map initialized with zoom:", initialZoom);
+  console.log("Mobile:", isMobile, "Portrait:", isPortrait);
+  console.log("Min zoom:", minZoom, "Max zoom:", maxZoom);
 
   if (isMobile) {
       map.dragPan.enable();
       map.dragRotate.disable();
       map.touchZoomRotate.disableRotation();
       
-      var floridaBounds = [[-89.7, 24.3], [-75.8, 31.1]];
-      map.fitBounds(floridaBounds, {
-          padding: { top: 20, bottom: 20, left: 20, right: 20 },
-          duration: 0
+      // Don't use fitBounds here as it might override your initial zoom
+      // Instead, set zoom directly in the initial map configuration
+      
+      // Listen for orientation changes
+      window.addEventListener('resize', function() {
+          var newIsPortrait = window.innerHeight > window.innerWidth;
+          if (newIsPortrait !== isPortrait) {
+              isPortrait = newIsPortrait;
+              // Update zoom based on new orientation
+              var newZoom = isPortrait ? portraitZoom : landscapeZoom;
+              console.log("Orientation changed, setting zoom to:", newZoom);
+              map.flyTo({
+                  center: centerCoordinates,
+                  zoom: newZoom,
+                  speed: 0.5,
+                  curve: 1.42
+              });
+          }
+      });
+      
+      // You could add an event to force the correct zoom after the map loads
+      map.on('load', function() {
+          console.log("Map loaded, current zoom:", map.getZoom());
+          if (isPortrait && Math.abs(map.getZoom() - portraitZoom) > 0.1) {
+              console.log("Forcing portrait zoom to:", portraitZoom);
+              map.setZoom(portraitZoom);
+          }
       });
       
       map.on('moveend', function() {
+          // Only reset zoom after 2 minutes of inactivity
           setTimeout(function() {
+              var targetZoom = isPortrait ? portraitZoom : landscapeZoom;
+              console.log("Resetting zoom to:", targetZoom);
               map.flyTo({
                   center: [map.getCenter().lng, 28.0],
-                  zoom: mobileInitialZoom,
+                  zoom: targetZoom,
                   speed: 0.5,
                   curve: 1.42
               });
@@ -272,7 +320,6 @@ func buildHTML(flCounties, roads, zones, blurred string, mapboxToken string) str
 
   // Define schedule mapping globally so it is available in geocoder result handler.
   var scheduleMapping = {
-
       "Mt Dora": "<ul><li>Mondays & Tuesdays: 11am-5pm</li></ul><a href='https://www.edenflorida.com/shop/' target='_blank' style='display: block; text-align: center;'>Shop Now!</a>",
       "Orlando North": "<ul><li>Monday: 11am-5pm</li></ul><a href='https://www.edenflorida.com/shop/' target='_blank' style='display: block; text-align: center;'>Shop Now!</a>",
       "Orlando South": "<ul><li>Tuesday: 11am-5pm</li></ul><a href='https://www.edenflorida.com/shop/' target='_blank' style='display: block; text-align: center;'>Shop Now!</a>",
@@ -295,56 +342,55 @@ func buildHTML(flCounties, roads, zones, blurred string, mapboxToken string) str
       minLength: 5,
       flyTo: {
           speed: 1.2,
-          zoom: 10,
           curve: 1.42,
-          maxZoom: 4
+          // Don't limit how zoomed out we can get
+          maxZoom: null
       }
   });
   map.addControl(geocoder, 'top-right');
 
-  // Determine orientation: portrait if height > width, landscape otherwise.
-var isPortrait = window.innerHeight > window.innerWidth;
-
-// Set different zoom levels for portrait vs landscape.
-var orientationZoom = isPortrait ? 8 : 10;  // Adjust these values as needed
-
-// Use orientationZoom for the initial zoom (or when calling flyTo)
-var initialZoom = isMobile ? orientationZoom : desktopInitialZoom;
-
-// Now, for example, in your flyTo call inside the geocoder result:
-geocoder.on('result', function(e) {
-    var point = e.result.geometry.coordinates;
-    var zonesData = map.getSource('zones')._data;
-    var foundZone = null;
-    zonesData.features.forEach(function(feature) {
-        if (turf.booleanPointInPolygon(point, feature)) {
-            foundZone = feature;
-        }
-    });
-    if (foundZone) {
-        var zoneName = foundZone.properties.name;
-        var scheduleHTML = scheduleMapping[zoneName] || "<p>No schedule available</p>";
-        var popupContent = "<strong>" + zoneName + "</strong>" + scheduleHTML;
-        new mapboxgl.Popup()
-            .setLngLat(point)
-            .setHTML(popupContent)
-            .addTo(map);
-    } else {
-        new mapboxgl.Popup()
-            .setLngLat(point)
-            .setHTML("<strong>We aren't delivering here yet, but stay tuned!</strong>")
-            .addTo(map);
-    }
-    map.flyTo({
-        center: point,
-        zoom: orientationZoom,
-        speed: 1.2,
-        curve: 1.42
-    });
-});
-
+  geocoder.on('result', function(e) {
+      var point = e.result.geometry.coordinates;
+      var zonesData = map.getSource('zones')._data;
+      var foundZone = null;
+      
+      // Make sure zones are loaded before trying to query
+      if (zonesData && zonesData.features) {
+          zonesData.features.forEach(function(feature) {
+              if (turf.booleanPointInPolygon(point, feature)) {
+                  foundZone = feature;
+              }
+          });
+      }
+      
+      if (foundZone) {
+          var zoneName = foundZone.properties.name;
+          var scheduleHTML = scheduleMapping[zoneName] || "<p>No schedule available</p>";
+          var popupContent = "<strong>" + zoneName + "</strong>" + scheduleHTML;
+          new mapboxgl.Popup()
+              .setLngLat(point)
+              .setHTML(popupContent)
+              .addTo(map);
+      } else {
+          new mapboxgl.Popup()
+              .setLngLat(point)
+              .setHTML("<strong>We aren't delivering here yet, but stay tuned!</strong>")
+              .addTo(map);
+      }
+      
+      // Use appropriate zoom based on device and orientation
+      map.flyTo({
+          center: point,
+          zoom: isMobile && isPortrait ? portraitZoom : (isMobile ? landscapeZoom : 10),
+          speed: 1.2,
+          curve: 1.42
+      });
+  });
 
   map.on('load', function () {
+    // Log current zoom after map loads
+    console.log("Map loaded. Current zoom:", map.getZoom());
+    
     map.addSource('blurred', {
       'type': 'geojson',
       'data': %s
@@ -429,11 +475,24 @@ geocoder.on('result', function(e) {
           // (You might want to clear or reuse your popup object.)
       }
     });
+    
+    // Force the correct zoom level after all layers are loaded
+    if (isMobile && isPortrait) {
+      console.log("Forcing zoom to portrait zoom:", portraitZoom);
+      setTimeout(function() {
+        map.setZoom(portraitZoom);
+      }, 500);
+    }
+  });
+  
+  // Debug zoom changes
+  map.on('zoomend', function() {
+    console.log("Zoom changed to:", map.getZoom());
   });
 </script>
 </body>
 </html>
-`, mapboxToken, mobileMaxZoom, mobileInitialZoom, desktopInitialZoom, blurred, flCounties, roads, zones)
+`, mapboxToken, mobileMaxZoom, portraitZoom, landscapeZoom, desktopInitialZoom, minZoom, blurred, flCounties, roads, zones)
 }
 
 func main() {
