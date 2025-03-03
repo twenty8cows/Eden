@@ -225,86 +225,111 @@ func buildHTML(flCounties, roads, zones, blurred string, mapboxToken string) str
   // Determine device type and orientation
   var isMobile = window.innerWidth < 768;
   var isPortrait = window.innerHeight > window.innerWidth;
-  
+
   // Set zoom levels based on device and orientation
   var mobileMaxZoom = %f;
   var portraitZoom = %f;
   var landscapeZoom = %f;
   var desktopInitialZoom = %f;
   var minZoom = %f;
-  
+
   // Choose the appropriate zoom level
   var initialZoom = isMobile 
       ? (isPortrait ? portraitZoom : landscapeZoom) 
       : desktopInitialZoom;
-  
+
   var maxZoom = isMobile ? mobileMaxZoom : 20;
-  
-  // For mobile, center roughly over Florida's center.
-  var centerCoordinates = isMobile ? [-81.5, 21.0] : [-84.4000, 27.9944];
 
-  // Use a wider maxBounds for better zooming out capability
-  var mapBounds = [[-95, 20], [-70, 35]]; // Wider bounds beyond just Florida
+  // Define different center points based on device and orientation
+  var centerCoordinates;
+  if (isMobile) {
+      if (isPortrait) {
+          // Adjusted center for mobile portrait mode
+          centerCoordinates = [-81.0, 27.0];  // Adjust these values as needed
+      } else {
+          // Mobile landscape mode
+          centerCoordinates = [-81.5, 26.0];
+      }
+  } else {
+      // Desktop mode
+      centerCoordinates = [-84.4000, 27.9944];
+  }
 
+  // Define broader map bounds to allow more zooming flexibility
+  var mapBounds = [[-95, 20], [-70, 35]];
+
+  // Initialize the map with adjusted center and zoom values
   var map = new mapboxgl.Map({
       container: 'map',
       style: 'mapbox://styles/mapbox/light-v10',
-      center: centerCoordinates,
+      center: centerCoordinates,  
       zoom: initialZoom,
       maxZoom: maxZoom,
-      minZoom: minZoom, // Allow zooming out more
+      minZoom: minZoom,
       pitch: 0,
       minPitch: 0,
       maxPitch: 0,
-      maxBounds: mapBounds // Wider bounds
+      maxBounds: mapBounds
   });
 
   // Debugging info
   console.log("Map initialized with zoom:", initialZoom);
   console.log("Mobile:", isMobile, "Portrait:", isPortrait);
+  console.log("Center Coordinates:", centerCoordinates);
   console.log("Min zoom:", minZoom, "Max zoom:", maxZoom);
 
   if (isMobile) {
-      map.dragPan.enable();
-      map.dragRotate.disable();
-      map.touchZoomRotate.disableRotation();
-      
-      // Don't use fitBounds here as it might override your initial zoom
-      // Instead, set zoom directly in the initial map configuration
-      
-      // Listen for orientation changes
+      // Adjust on screen resize to dynamically update if needed
       window.addEventListener('resize', function() {
           var newIsPortrait = window.innerHeight > window.innerWidth;
           if (newIsPortrait !== isPortrait) {
               isPortrait = newIsPortrait;
-              // Update zoom based on new orientation
+              
+              // Determine the new center based on the updated orientation
+              var newCenter = isPortrait ? [-81.0, 27.0] : [-81.5, 26.0];
               var newZoom = isPortrait ? portraitZoom : landscapeZoom;
-              console.log("Orientation changed, setting zoom to:", newZoom);
+              
+              console.log("Orientation changed. New center:", newCenter, "New zoom:", newZoom);
+
+              // Smooth transition to the new center
               map.flyTo({
-                  center: centerCoordinates,
+                  center: newCenter,
                   zoom: newZoom,
                   speed: 0.5,
                   curve: 1.42
               });
           }
       });
-      
-      // You could add an event to force the correct zoom after the map loads
+
+      // Ensure the correct center is applied after the map loads
       map.on('load', function() {
-          console.log("Map loaded, current zoom:", map.getZoom());
-          if (isPortrait && Math.abs(map.getZoom() - portraitZoom) > 0.1) {
-              console.log("Forcing portrait zoom to:", portraitZoom);
-              map.setZoom(portraitZoom);
+          console.log("Map fully loaded. Current zoom:", map.getZoom());
+          
+          if (isMobile && isPortrait) {
+              console.log("Ensuring proper zoom and center for portrait mode.");
+              setTimeout(function() {
+                  map.flyTo({
+                      center: [-81.0, 27.0], // Adjusted center for portrait mode
+                      zoom: portraitZoom,
+                      speed: 0.5,
+                      curve: 1.42
+                  });
+              }, 500);
           }
       });
-      
+
+      // Debug zoom changes
+      map.on('zoomend', function() {
+          console.log("Zoom changed to:", map.getZoom());
+      });
+
       map.on('moveend', function() {
           // Only reset zoom after 2 minutes of inactivity
           setTimeout(function() {
               var targetZoom = isPortrait ? portraitZoom : landscapeZoom;
               console.log("Resetting zoom to:", targetZoom);
               map.flyTo({
-                  center: [map.getCenter().lng, 28.0],
+                  center: [map.getCenter().lng, 26.0],
                   zoom: targetZoom,
                   speed: 0.5,
                   curve: 1.42
