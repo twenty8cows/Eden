@@ -144,7 +144,6 @@ func buildHTML(flCounties, roads, zones, blurred string, mapboxToken string) str
 	var landscapeZoom float64 = 7.0
 	var minZoom float64 = 2.0 // Allow zooming out more
 
-	// For mobile, adjust the center to roughly Florida's center.
 	return fmt.Sprintf(`<!DOCTYPE html>
 <html>
 <head>
@@ -226,43 +225,41 @@ func buildHTML(flCounties, roads, zones, blurred string, mapboxToken string) str
   var isMobile = window.innerWidth < 768;
   var isPortrait = window.innerHeight > window.innerWidth;
 
-  // Set zoom levels based on device and orientation
+  // Define center coordinate presets
+  var mobilePortraitCenter = [-80.5, 27.0];
+  var mobileLandscapeCenter = [-81.5, 26.0];
+  var desktopCenter = [-84.4, 27.9944];
+
+  // Set zoom levels
   var mobileMaxZoom = %f;
   var portraitZoom = %f;
   var landscapeZoom = %f;
   var desktopInitialZoom = %f;
   var minZoom = %f;
 
-  // Choose the appropriate zoom level
-  var initialZoom = isMobile 
-      ? (isPortrait ? portraitZoom : landscapeZoom) 
+  // Choose appropriate initial zoom
+  var initialZoom = isMobile
+      ? (isPortrait ? portraitZoom : landscapeZoom)
       : desktopInitialZoom;
 
   var maxZoom = isMobile ? mobileMaxZoom : 20;
 
-  // Define different center points based on device and orientation
+  // Determine the map's initial center
   var centerCoordinates;
   if (isMobile) {
-      if (isPortrait) {
-          // Adjusted center for mobile portrait mode
-          centerCoordinates = [-81.0, 27.0];  // Adjust these values as needed
-      } else {
-          // Mobile landscape mode
-          centerCoordinates = [-81.5, 26.0];
-      }
+      centerCoordinates = isPortrait ? mobilePortraitCenter : mobileLandscapeCenter;
   } else {
-      // Desktop mode
-      centerCoordinates = [-84.4000, 27.9944];
+      centerCoordinates = desktopCenter;
   }
 
-  // Define broader map bounds to allow more zooming flexibility
+  // Broader map bounds
   var mapBounds = [[-95, 20], [-70, 35]];
 
-  // Initialize the map with adjusted center and zoom values
+  // Initialize the map
   var map = new mapboxgl.Map({
       container: 'map',
       style: 'mapbox://styles/mapbox/light-v10',
-      center: centerCoordinates,  
+      center: centerCoordinates,
       zoom: initialZoom,
       maxZoom: maxZoom,
       minZoom: minZoom,
@@ -272,78 +269,21 @@ func buildHTML(flCounties, roads, zones, blurred string, mapboxToken string) str
       maxBounds: mapBounds
   });
 
-  // Debugging info
+  // Debug info
   console.log("Map initialized with zoom:", initialZoom);
   console.log("Mobile:", isMobile, "Portrait:", isPortrait);
   console.log("Center Coordinates:", centerCoordinates);
-  console.log("Min zoom:", minZoom, "Max zoom:", maxZoom);
 
-  if (isMobile) {
-      // Adjust on screen resize to dynamically update if needed
-      window.addEventListener('resize', function() {
-          var newIsPortrait = window.innerHeight > window.innerWidth;
-          if (newIsPortrait !== isPortrait) {
-              isPortrait = newIsPortrait;
-              
-              // Determine the new center based on the updated orientation
-              var newCenter = isPortrait ? [-81.0, 27.0] : [-81.5, 26.0];
-              var newZoom = isPortrait ? portraitZoom : landscapeZoom;
-              
-              console.log("Orientation changed. New center:", newCenter, "New zoom:", newZoom);
-
-              // Smooth transition to the new center
-              map.flyTo({
-                  center: newCenter,
-                  zoom: newZoom,
-                  speed: 0.5,
-                  curve: 1.42
-              });
-          }
-      });
-
-      // Ensure the correct center is applied after the map loads
-      map.on('load', function() {
-          console.log("Map fully loaded. Current zoom:", map.getZoom());
-          
-          if (isMobile && isPortrait) {
-              console.log("Ensuring proper zoom and center for portrait mode.");
-              setTimeout(function() {
-                  map.flyTo({
-                      center: [-81.0, 27.0], // Adjusted center for portrait mode
-                      zoom: portraitZoom,
-                      speed: 0.5,
-                      curve: 1.42
-                  });
-              }, 500);
-          }
-      });
-
-      // Debug zoom changes
-      map.on('zoomend', function() {
-          console.log("Zoom changed to:", map.getZoom());
-      });
-
-      map.on('moveend', function() {
-          // Only reset zoom after 2 minutes of inactivity
-          setTimeout(function() {
-              var targetZoom = isPortrait ? portraitZoom : landscapeZoom;
-              console.log("Resetting zoom to:", targetZoom);
-              map.flyTo({
-                  center: [map.getCenter().lng, 26.0],
-                  zoom: targetZoom,
-                  speed: 0.5,
-                  curve: 1.42
-              });
-          }, 120000); // 2 minute delay
-      });
-  } else {
+  // For non-mobile, disable drag and rotation
+  if (!isMobile) {
       map.dragPan.disable();
       map.touchZoomRotate.disable();
   }
 
+  // Add map controls
   map.addControl(new mapboxgl.NavigationControl(), 'top-left');
 
-  // Define schedule mapping globally so it is available in geocoder result handler.
+  // Schedule mapping (remains unchanged)
   var scheduleMapping = {
       "Mt Dora": "<ul><li>Mondays & Tuesdays: 11am-5pm</li></ul><a href='https://www.edenflorida.com/shop/' target='_blank' style='display: block; text-align: center;'>Shop Now!</a>",
       "Orlando North": "<ul><li>Monday: 11am-5pm</li></ul><a href='https://www.edenflorida.com/shop/' target='_blank' style='display: block; text-align: center;'>Shop Now!</a>",
@@ -359,6 +299,7 @@ func buildHTML(flCounties, roads, zones, blurred string, mapboxToken string) str
       "West Palm": "<ul><li>Wednesday: 12pm-4pm</li></ul><a href='https://www.edenflorida.com/shop/' target='_blank' style='display: block; text-align: center;'>Shop Now!</a>"
   };
 
+  // Geocoder setup
   var geocoder = new MapboxGeocoder({
       accessToken: mapboxgl.accessToken,
       mapboxgl: mapboxgl,
@@ -368,18 +309,18 @@ func buildHTML(flCounties, roads, zones, blurred string, mapboxToken string) str
       flyTo: {
           speed: 1.2,
           curve: 1.42,
-          // Don't limit how zoomed out we can get
-          maxZoom: null
+          maxZoom: null // allow any zoom out
       }
   });
   map.addControl(geocoder, 'top-right');
 
+  // When geocoder returns a result, fly to that location
   geocoder.on('result', function(e) {
       var point = e.result.geometry.coordinates;
       var zonesData = map.getSource('zones')._data;
       var foundZone = null;
       
-      // Make sure zones are loaded before trying to query
+      // Ensure zones are loaded before checking
       if (zonesData && zonesData.features) {
           zonesData.features.forEach(function(feature) {
               if (turf.booleanPointInPolygon(point, feature)) {
@@ -403,7 +344,7 @@ func buildHTML(flCounties, roads, zones, blurred string, mapboxToken string) str
               .addTo(map);
       }
       
-      // Use appropriate zoom based on device and orientation
+      // Fly ONLY upon address search result
       map.flyTo({
           center: point,
           zoom: isMobile && isPortrait ? portraitZoom : (isMobile ? landscapeZoom : 10),
@@ -412,10 +353,11 @@ func buildHTML(flCounties, roads, zones, blurred string, mapboxToken string) str
       });
   });
 
+  // Load event: add sources/layers
   map.on('load', function () {
-    // Log current zoom after map loads
     console.log("Map loaded. Current zoom:", map.getZoom());
     
+    // Add blurred overlay
     map.addSource('blurred', {
       'type': 'geojson',
       'data': %s
@@ -431,6 +373,7 @@ func buildHTML(flCounties, roads, zones, blurred string, mapboxToken string) str
       }
     });
 
+    // Add Florida counties
     map.addSource('florida_counties', {
       'type': 'geojson',
       'data': %s
@@ -447,6 +390,7 @@ func buildHTML(flCounties, roads, zones, blurred string, mapboxToken string) str
       }
     });
 
+    // Add roads
     map.addSource('roads', {
       'type': 'geojson',
       'data': %s
@@ -462,6 +406,7 @@ func buildHTML(flCounties, roads, zones, blurred string, mapboxToken string) str
       }
     });
 
+    // Add delivery zones
     map.addSource('zones', {
       'type': 'geojson',
       'data': %s
@@ -480,6 +425,7 @@ func buildHTML(flCounties, roads, zones, blurred string, mapboxToken string) str
 
     console.log("Zones data:", map.getSource('zones')._data);
 
+    // Click on a zone: open popup
     map.on('click', 'zones_layer', function(e) {
       var zoneName = e.features[0].properties.name;
       if (zoneName === "Mt.Dora") {
@@ -493,24 +439,14 @@ func buildHTML(flCounties, roads, zones, blurred string, mapboxToken string) str
           .addTo(map);
     });
 
+    // Click outside zones_layer: optional popup close logic
     map.on('click', function(e) {
       var features = map.queryRenderedFeatures(e.point, { layers: ['zones_layer'] });
       if (!features.length) {
-          // Close popup if click is not on a zone.
-          // (You might want to clear or reuse your popup object.)
+          // No zone clicked, you could close or clear popups if needed
       }
     });
-    
-    if (isMobile && isPortrait) {
-      console.log("Adjusting center for mobile portrait after layers load.");
-      map.flyTo({
-          center: [-81.0, 27.0],
-          zoom: portraitZoom,
-          speed: 0.5,
-          curve: 1.42
-      });
-  }
-});
+  });
   
   // Debug zoom changes
   map.on('zoomend', function() {
