@@ -501,14 +501,16 @@ func buildHTML(flCounties, roads, zones, blurred string, mapboxToken string) str
       }
     });
     
-    // Force the correct zoom level after all layers are loaded
     if (isMobile && isPortrait) {
-      console.log("Forcing zoom to portrait zoom:", portraitZoom);
-      setTimeout(function() {
-        map.setZoom(portraitZoom);
-      }, 500);
-    }
-  });
+      console.log("Adjusting center for mobile portrait after layers load.");
+      map.flyTo({
+          center: [-81.0, 27.0],
+          zoom: portraitZoom,
+          speed: 0.5,
+          curve: 1.42
+      });
+  }
+});
   
   // Debug zoom changes
   map.on('zoomend', function() {
