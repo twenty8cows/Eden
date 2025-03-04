@@ -340,7 +340,8 @@ func buildHTML(flCounties, roads, zones, blurred string, mapboxToken string) str
       } else {
           new mapboxgl.Popup()
               .setLngLat(point)
-              .setHTML("<strong>We aren't delivering here yet, but stay tuned!</strong>")
+              .setHTML('<ul><li><strong>We aren\'t delivering here yet, but stay tuned!</strong> <a href="https://forms.office.com/Pages/ResponsePage.aspx?id=bGCi-r969UWm3mPaR2jxQ-cyCvDoRBxCkmEJWte2jEVUMDdTTlNLU1BNWjBORDNNSjczOTVPOTRFRy4u" target="_blank">Pssst... if you have a minute fill out this form and let us know where Eden should go to next!</a></li></ul>')
+
               .addTo(map);
       }
       
