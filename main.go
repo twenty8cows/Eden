@@ -313,11 +313,6 @@ func buildHTML(flCounties, roads, zones, blurred string, mapboxToken string) str
       maxBounds: mapBounds
   });
 
-  // Debug info
-  console.log("Map initialized with zoom:", initialZoom);
-  console.log("Mobile:", isMobile, "Portrait:", isPortrait);
-  console.log("Center Coordinates:", centerCoordinates);
-
   // For non-mobile, disable drag and rotation
   if (!isMobile) {
       map.dragPan.disable();
@@ -431,50 +426,81 @@ func buildHTML(flCounties, roads, zones, blurred string, mapboxToken string) str
       }
     });
 
-    // Now add the geocoder event listener:
-    geocoder.on('result', function(e) {
-      var point = e.result.geometry.coordinates;
-      var zonesData = map.getSource('zones')._data;
-      var foundZone = null;
-      var pointFeature = turf.point(point);
-      
-      if (zonesData && zonesData.features) {
-        zonesData.features.forEach(function(feature) {
-          // Only test features that are Polygons or MultiPolygons
-          if (feature.geometry && (feature.geometry.type === "Polygon" || feature.geometry.type === "MultiPolygon")) {
-            if (turf.booleanPointInPolygon(pointFeature, feature)) {
-              foundZone = feature;
-            }
-          } else {
-            console.warn("Skipping feature with non-polygon geometry:", feature);
-          }
-        });
-      }
-      
-      if (foundZone) {
-        var zoneName = foundZone.properties.name;
-        var scheduleHTML = scheduleMapping[zoneName] || "<p>No schedule available</p>";
-        var popupContent = "<strong>" + zoneName + "</strong>" + scheduleHTML;
-        new mapboxgl.Popup()
-            .setLngLat(point)
-            .setHTML(popupContent)
-            .addTo(map);
+    // Geocoder event listener:
+geocoder.on('result', function(e) {
+  var point = e.result.geometry.coordinates;
+  var zonesData = map.getSource('zones')._data;
+  var foundZone = null;
+  var pointFeature = turf.point(point);
+  
+  if (zonesData && zonesData.features) {
+    zonesData.features.forEach(function(feature) {
+      // Only test features that are Polygons or MultiPolygons
+      if (feature.geometry &&
+          (feature.geometry.type === "Polygon" || feature.geometry.type === "MultiPolygon")) {
+        if (turf.booleanPointInPolygon(pointFeature, feature)) {
+          foundZone = feature;
+        }
       } else {
-        new mapboxgl.Popup()
-            .setLngLat(point)
-            .setHTML('<ul><li><strong>We aren\'t delivering here yet, but stay tuned!</strong> <a href="https://forms.office.com/Pages/ResponsePage.aspx?id=bGCi-r969UWm3mPaR2jxQ-cyCvDoRBxCkmEJWte2jEVUMDdTTlNLU1BNWjBORDNNSjczOTVPOTRFRy4u" target="_blank">Pssst... if you have a minute fill out this form and let us know where Eden should go to next!</a></li></ul>')
-            .addTo(map);
+        console.warn("Skipping feature with non-polygon geometry:", feature);
       }
-      
-      // Fly ONLY upon address search result
-      map.flyTo({
-          center: point,
-          zoom: isMobile && isPortrait ? portraitZoom : (isMobile ? landscapeZoom : 10),
-          speed: 1.2,
-          curve: 1.42
-      });
     });
-    
+  }
+  
+  // Optionally create the popup after the transition.
+  function showPopup() {
+    if (foundZone) {
+      var zoneName = foundZone.properties.name;
+      var scheduleHTML = scheduleMapping[zoneName] || "<p>No schedule available</p>";
+      var popupContent = "<strong>" + zoneName + "</strong>" + scheduleHTML;
+      new mapboxgl.Popup()
+          .setLngLat(point)
+          .setHTML(popupContent)
+          .addTo(map);
+    } else {
+      new mapboxgl.Popup()
+          .setLngLat(point)
+          .setHTML('<ul><li><strong>We aren\'t delivering here yet, but stay tuned!</strong> <a href="https://forms.office.com/Pages/ResponsePage.aspx?id=bGCi-r969UWm3mPaR2jxQ-cyCvDoRBxCkmEJWte2jEVUMDdTTlNLU1BNWjBORDNNSjczOTVPOTRFRy4u" target="_blank">Pssst... if you have a minute fill out this form and let us know where Eden should go to next!</a></li></ul>')
+          .addTo(map);
+    }
+  }
+
+  // On mobile, disable interactions and force a resize
+  if (isMobile) {
+    map.dragPan.disable();
+    map.touchZoomRotate.disable();
+    map.resize();
+  }
+
+  // Choose between flyTo and easeTo – comment out one of these if needed
+
+  // Option A: Using flyTo
+  map.flyTo({
+      center: point,
+      zoom: isMobile && isPortrait ? portraitZoom : (isMobile ? landscapeZoom : 10),
+      speed: 1.2,
+      curve: 1.42
+  });
+
+  // Option B: Using easeTo (uncomment the block below and comment out flyTo if you want to try it)
+  /*
+  map.easeTo({
+      center: point,
+      zoom: isMobile && isPortrait ? portraitZoom : (isMobile ? landscapeZoom : 10),
+      duration: 1500  // Duration in milliseconds; adjust as needed
+  });
+  */
+
+  // Re-enable interactions and show the popup after the animation completes
+  map.once('moveend', function() {
+    if (isMobile) {
+      map.dragPan.enable();
+      map.touchZoomRotate.enable();
+    }
+    showPopup();
+  });
+});
+
     // Click on a zone: open popup
     map.on('click', 'zones_layer', function(e) {
       var zoneName = e.features[0].properties.name;
