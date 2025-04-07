@@ -327,7 +327,7 @@ func buildHTML(flCounties, roads, zones, blurred string, mapboxToken string) str
   // Add map controls
   map.addControl(new mapboxgl.NavigationControl(), 'top-left');
 
-   // Schedule mapping (remains unchanged)
+  // Schedule mapping (remains unchanged)
   var scheduleMapping = {
     "Charlotte County": "<ul><li>Sunday: 11am-4pm</li></ul><a href='https://www.edenflorida.com/shop/' target='_blank' style='display: block; text-align: center;'>Shop Now!</a>",
     "Gulf Coast": "<ul><li>Sunday: 11am-4pm</li></ul><a href='https://www.edenflorida.com/shop/' target='_blank' style='display: block; text-align: center;'>Shop Now!</a>",
@@ -343,7 +343,7 @@ func buildHTML(flCounties, roads, zones, blurred string, mapboxToken string) str
     "Citrus Zone": "<ul><li>Thursday: 11am-4pm</li></ul><a href='https://www.edenflorida.com/shop/' target='_blank' style='display: block; text-align: center;'>Shop Now!</a>",
     "Jacksonville": "<ul><li>Friday: 12pm-4pm</li></ul><a href='https://www.edenflorida.com/shop/' target='_blank' style='display: block; text-align: center;'>Shop Now!</a>",
     "Space Coast": "<ul><li>Saturday: 12pm-4pm</li></ul><a href='https://www.edenflorida.com/shop/' target='_blank' style='display: block; text-align: center;'>Shop Now!</a>",
-    "Vero Beach": "<ul><li>Saturday: 12pm-4pm</li></ul><a href='https://www.edenflorida.com/shop/' target='_blank' style='display: block; text-align: center;'>Shop Now!</a>",
+    "Vero Beach": "<ul><li>Saturday: 12pm-4pm</li></ul><a href='https://www.edenflorida.com/shop/' target='_blank' style='display: block; text-align: center;'>Shop Now!</a>"
   };
 
   // Geocoder setup
@@ -361,46 +361,7 @@ func buildHTML(flCounties, roads, zones, blurred string, mapboxToken string) str
   });
   map.addControl(geocoder, 'top-right');
 
-  // When geocoder returns a result, fly to that location
-  geocoder.on('result', function(e) {
-      var point = e.result.geometry.coordinates;
-      var zonesData = map.getSource('zones')._data;
-      var foundZone = null;
-      
-      // Ensure zones are loaded before checking
-      if (zonesData && zonesData.features) {
-          zonesData.features.forEach(function(feature) {
-              if (turf.booleanPointInPolygon(point, feature)) {
-                  foundZone = feature;
-              }
-          });
-      }
-      
-      if (foundZone) {
-          var zoneName = foundZone.properties.name;
-          var scheduleHTML = scheduleMapping[zoneName] || "<p>No schedule available</p>";
-          var popupContent = "<strong>" + zoneName + "</strong>" + scheduleHTML;
-          new mapboxgl.Popup()
-              .setLngLat(point)
-              .setHTML(popupContent)
-              .addTo(map);
-      } else {
-          new mapboxgl.Popup()
-              .setLngLat(point)
-              .setHTML("<strong>We aren't delivering here yet, but stay tuned!</strong>")
-              .addTo(map);
-      }
-      
-      // Fly ONLY upon address search result
-      map.flyTo({
-          center: point,
-          zoom: isMobile && isPortrait ? portraitZoom : (isMobile ? landscapeZoom : 10),
-          speed: 1.2,
-          curve: 1.42
-      });
-  });
-
-  // Load event: add sources/layers
+  // Load event: add sources/layers and register the geocoder result event listener
   map.on('load', function () {
     console.log("Map loaded. Current zoom:", map.getZoom());
     
@@ -470,7 +431,51 @@ func buildHTML(flCounties, roads, zones, blurred string, mapboxToken string) str
       }
     });
 
-    console.log("Zones data:", map.getSource('zones')._data);
+    // Now add the geocoder event listener:
+    geocoder.on('result', function(e) {
+  var point = e.result.geometry.coordinates;
+  var zonesData = map.getSource('zones')._data;
+  var foundZone = null;
+  var pointFeature = turf.point(point);
+  
+  if (zonesData && zonesData.features) {
+    zonesData.features.forEach(function(feature) {
+      // Only test features that are Polygons or MultiPolygons
+      if (feature.geometry && 
+          (feature.geometry.type === "Polygon" || feature.geometry.type === "MultiPolygon")) {
+        if (turf.booleanPointInPolygon(pointFeature, feature)) {
+          foundZone = feature;
+        }
+      } else {
+        console.warn("Skipping feature with non-polygon geometry:", feature);
+      }
+    });
+  }
+  
+  if (foundZone) {
+    var zoneName = foundZone.properties.name;
+    var scheduleHTML = scheduleMapping[zoneName] || "<p>No schedule available</p>";
+    var popupContent = "<strong>" + zoneName + "</strong>" + scheduleHTML;
+    new mapboxgl.Popup()
+        .setLngLat(point)
+        .setHTML(popupContent)
+        .addTo(map);
+  } else {
+    new mapboxgl.Popup()
+        .setLngLat(point)
+        .setHTML('<ul><li><strong>We aren\'t delivering here yet, but stay tuned!</strong> <a href="https://forms.office.com/Pages/ResponsePage.aspx?id=bGCi-r969UWm3mPaR2jxQ-cyCvDoRBxCkmEJWte2jEVUMDdTTlNLU1BNWjBORDNNSjczOTVPOTRFRy4u" target="_blank">Pssst... if you have a minute fill out this form and let us know where Eden should go to next!</a></li></ul>')
+        .addTo(map);
+  }
+  
+  // Fly ONLY upon address search result
+  map.flyTo({
+      center: point,
+      zoom: isMobile && isPortrait ? portraitZoom : (isMobile ? landscapeZoom : 10),
+      speed: 1.2,
+      curve: 1.42
+  });
+});
+
 
     // Click on a zone: open popup
     map.on('click', 'zones_layer', function(e) {
