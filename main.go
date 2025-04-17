@@ -238,6 +238,7 @@ func buildHTML(flCounties, roads, zones, blurred string, mapboxToken string) str
     }
     .mapboxgl-popup-content {
       font-size: 20px;
+      text-align: center;
     }
     /* For mobile, move the navigation control to left center */
     @media only screen and (max-width: 768px) {
@@ -337,6 +338,7 @@ func buildHTML(flCounties, roads, zones, blurred string, mapboxToken string) str
     "Pinellas": "<ul><li>Thursday: 12pm-4pm</li></ul><a href='https://www.edenflorida.com/shop/' target='_blank' style='display: block; text-align: center;'>Shop Now!</a>",
     "Citrus Zone": "<ul><li>Thursday: 11am-4pm</li></ul><a href='https://www.edenflorida.com/shop/' target='_blank' style='display: block; text-align: center;'>Shop Now!</a>",
     "Jacksonville": "<ul><li>Friday: 12pm-4pm</li></ul><a href='https://www.edenflorida.com/shop/' target='_blank' style='display: block; text-align: center;'>Shop Now!</a>",
+    "Marion County": "<ul><li>Friday: 12pm-4pm</li></ul><a href='https://www.edenflorida.com/shop/' target='_blank' style='display: block; text-align: center;'>Shop Now!</a>",
     "Space Coast": "<ul><li>Saturday: 12pm-4pm</li></ul><a href='https://www.edenflorida.com/shop/' target='_blank' style='display: block; text-align: center;'>Shop Now!</a>",
     "Vero Beach": "<ul><li>Saturday: 12pm-4pm</li></ul><a href='https://www.edenflorida.com/shop/' target='_blank' style='display: block; text-align: center;'>Shop Now!</a>"
   };
@@ -534,7 +536,7 @@ geocoder.on('result', function(e) {
 func main() {
 	godotenv.Load()
 
-	kmlFile := "/Users/jon/fl_map_go/Eden_Layout_04-05-25.kml"
+	kmlFile := "/Users/jon/fl_map_go/Eden_Layout_04.17.25.kml"
 	flCountiesGeoJSON := os.Getenv("FLORIDA_COUNTIES_GEOJSON")
 	roadsGeoJSON := os.Getenv("ROADWAYS_GEOJSON")
 	mapboxToken := os.Getenv("MAPBOX_TOKEN")
