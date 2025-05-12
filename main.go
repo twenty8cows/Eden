@@ -329,7 +329,7 @@ func buildHTML(flCounties, roads, zones, blurred string, mapboxToken string) str
     "Gulf Coast": "<ul><li>Sunday: 11am-4pm</li></ul><a href='https://www.edenflorida.com/shop/' target='_blank' style='display: block; text-align: center;'>Shop Now!</a>",
     "Orlando North": "<ul><li>Monday: 11am-5pm</li></ul><a href='https://www.edenflorida.com/shop/' target='_blank' style='display: block; text-align: center;'>Shop Now!</a>",
     "Volusia County": "<ul><li>Monday: 12pm-4pm</li></ul><a href='https://www.edenflorida.com/shop/' target='_blank' style='display: block; text-align: center;'>Shop Now!</a>",
-    "Mt Dora": "<ul><li>Mondays & Tuesdays: 11am-5pm</li></ul><a href='https://www.edenflorida.com/shop/' target='_blank' style='display: block; text-align: center;'>Shop Now!</a>",
+    "Mt. Dora": "<ul><li>Mondays & Tuesdays: 11am-5pm</li></ul><a href='https://www.edenflorida.com/shop/' target='_blank' style='display: block; text-align: center;'>Shop Now!</a>",
     "Orlando South": "<ul><li>Tuesday: 11am-5pm</li></ul><a href='https://www.edenflorida.com/shop/' target='_blank' style='display: block; text-align: center;'>Shop Now!</a>",
     "West Palm": "<ul><li>Wednesday: 12pm-4pm</li></ul><a href='https://www.edenflorida.com/shop/' target='_blank' style='display: block; text-align: center;'>Shop Now!</a>",
     "Tampa": "<ul><li>Thursday: 12pm-4pm</li></ul><a href='https://www.edenflorida.com/shop/' target='_blank' style='display: block; text-align: center;'>Shop Now!</a>",
@@ -344,285 +344,98 @@ func buildHTML(flCounties, roads, zones, blurred string, mapboxToken string) str
   };
 
   // Geocoder setup
-  var geocoder = new MapboxGeocoder({
-      accessToken: mapboxgl.accessToken,
-      mapboxgl: mapboxgl,
-      marker: true,
-      placeholder: 'Enter an Address',
-      minLength: 5,
-      flyTo: {
-          speed: 1.2,
-          curve: 1.42,
-          maxZoom: null // allow any zoom out
-      }
-  });
+  var geocoder = new MapboxGeocoder({ accessToken:mapboxgl.accessToken, mapboxgl:mapboxgl, marker:false, placeholder:'Enter an Address', minLength:5 });
   map.addControl(geocoder, 'top-right');
 
-  // Load event: add sources/layers and register the geocoder result event listener
-  map.on('load', function () {
-    console.log("Map loaded. Current zoom:", map.getZoom());
-    
-    // Add blurred overlay
-    map.addSource('blurred', {
-      'type': 'geojson',
-      'data': %s
-    });
-    map.addLayer({
-      'id': 'blurred_layer',
-      'type': 'fill',
-      'source': 'blurred',
-      'layout': {},
-      'paint': {
-        'fill-color': '#122017',
-        'fill-opacity': 1.0
-      }
-    });
+  map.on('load', function(){
+    map.addSource('blurred',{ type:'geojson', data:%s });
+    map.addLayer({ id:'blurred_layer', type:'fill', source:'blurred', paint:{ 'fill-color':'#122017','fill-opacity':1.0 }});
+    map.addSource('florida_counties',{ type:'geojson', data:%s });
+    map.addLayer({ id:'florida_counties_layer', type:'fill', source:'florida_counties', paint:{ 'fill-color':'#fff','fill-outline-color':'#000','fill-opacity':1.0 }});
+    map.addSource('roads',{ type:'geojson', data:%s });
+    map.addLayer({ id:'roads_layer', type:'line', source:'roads', paint:{ 'line-color':'#000','line-width':isMobile?1.3:1 }});
+    map.addSource('zones',{ type:'geojson', data:%s });
+    map.addLayer({ id:'zones_layer', type:'fill', source:'zones', paint:{ 'fill-color':'#a28834','fill-outline-color':'#000','fill-opacity':0.8 }});
 
-    // Add Florida counties
-    map.addSource('florida_counties', {
-      'type': 'geojson',
-      'data': %s
-    });
-    map.addLayer({
-      'id': 'florida_counties_layer',
-      'type': 'fill',
-      'source': 'florida_counties',
-      'layout': {},
-      'paint': {
-        'fill-color': '#ffffff',
-        'fill-outline-color': '#000000',
-        'fill-opacity': 1.0
-      }
-    });
+    function showPopup(point, content) {
+      new mapboxgl.Popup({ offset:15, className:'custom-popup', closeButton:true })
+        .setLngLat(point)
+        .setHTML(content)
+        .addTo(map);
+    }
 
-    // Add roads
-    map.addSource('roads', {
-      'type': 'geojson',
-      'data': %s
-    });
-    map.addLayer({
-      'id': 'roads_layer',
-      'type': 'line',
-      'source': 'roads',
-      'layout': {},
-      'paint': {
-        'line-color': '#000000',
-        'line-width': isMobile ? 1.3 : 1
-      }
-    });
-
-    // Add delivery zones
-    map.addSource('zones', {
-      'type': 'geojson',
-      'data': %s
-    });
-    map.addLayer({
-      'id': 'zones_layer',
-      'type': 'fill',
-      'source': 'zones',
-      'layout': {},
-      'paint': {
-        'fill-color': '#a28834',
-        'fill-outline-color': '#000000',
-        'fill-opacity': 0.8
-      }
-    });
-
-    // Geocoder event listener:
-geocoder.on('result', function(e) {
-  var point = e.result.geometry.coordinates;
-  var zonesData = map.getSource('zones')._data;
-  var foundZone = null;
-  var pointFeature = turf.point(point);
-  
-  if (zonesData && zonesData.features) {
-    zonesData.features.forEach(function(feature) {
-      // Only test features that are Polygons or MultiPolygons
-      if (feature.geometry &&
-          (feature.geometry.type === "Polygon" || feature.geometry.type === "MultiPolygon")) {
-        if (turf.booleanPointInPolygon(pointFeature, feature)) {
-          foundZone = feature;
-        }
+    geocoder.on('result', function(e){
+      var point = e.result.geometry.coordinates;
+      var foundZone = null;
+      var zonesData = map.getSource('zones')._data;
+      var pt = turf.point(point);
+      zonesData.features.forEach(function(f){ if((f.geometry.type==='Polygon'||f.geometry.type==='MultiPolygon')&&turf.booleanPointInPolygon(pt,f))foundZone=f; });
+      var content;
+      if(foundZone){
+        var name=foundZone.properties.name;
+        content='<strong>'+name+'</strong>'+scheduleMapping[name];
       } else {
-        console.warn("Skipping feature with non-polygon geometry:", feature);
+        content='<strong>We aren\'t delivering here yet</strong><p><a href="https://forms.office.com/...">Tell us where next!</a></p>';
       }
+      map.flyTo({ center:point, zoom:isMobile?(isPortrait?portraitZoom:landscapeZoom):10, speed:1.2, curve:1.42 });
+      map.once('moveend',function(){ showPopup(point,content); if(isMobile){ map.dragPan.enable(); map.touchZoomRotate.enable(); map.resize(); } });
     });
-  }
-  
-  // Optionally create the popup after the transition.
-  function showPopup() {
-    if (foundZone) {
-      var zoneName = foundZone.properties.name;
-      var scheduleHTML = scheduleMapping[zoneName] || "<p>No schedule available</p>";
-      var popupContent = "<strong>" + zoneName + "</strong>" + scheduleHTML;
-      new mapboxgl.Popup()
-          .setLngLat(point)
-          .setHTML(popupContent)
-          .addTo(map);
-    } else {
-      new mapboxgl.Popup()
-          .setLngLat(point)
-          .setHTML('<ul><li><strong>We aren\'t delivering here yet, but stay tuned!</strong> <a href="https://forms.office.com/Pages/ResponsePage.aspx?id=bGCi-r969UWm3mPaR2jxQ-cyCvDoRBxCkmEJWte2jEVUMDdTTlNLU1BNWjBORDNNSjczOTVPOTRFRy4u" target="_blank">Pssst... if you have a minute fill out this form and let us know where Eden should go to next!</a></li></ul>')
-          .addTo(map);
-    }
-  }
 
-  // On mobile, disable interactions and force a resize
-  if (isMobile) {
-    map.dragPan.disable();
-    map.touchZoomRotate.disable();
-    map.resize();
-  }
-
-  // Choose between flyTo and easeTo – comment out one of these if needed
-
-  // Option A: Using flyTo
-  map.flyTo({
-      center: point,
-      zoom: isMobile && isPortrait ? portraitZoom : (isMobile ? landscapeZoom : 10),
-      speed: 1.2,
-      curve: 1.42
-  });
-
-  // Option B: Using easeTo (uncomment the block below and comment out flyTo if you want to try it)
-  /*
-  map.easeTo({
-      center: point,
-      zoom: isMobile && isPortrait ? portraitZoom : (isMobile ? landscapeZoom : 10),
-      duration: 1500  // Duration in milliseconds; adjust as needed
-  });
-  */
-
-  // Re-enable interactions and show the popup after the animation completes
-  map.once('moveend', function() {
-    if (isMobile) {
-      map.dragPan.enable();
-      map.touchZoomRotate.enable();
-    }
-    showPopup();
-  });
-});
-
-    // Click on a zone: open popup
-    map.on('click', 'zones_layer', function(e) {
-      var zoneName = e.features[0].properties.name;
-      var scheduleHTML = scheduleMapping[zoneName] || "<p>No schedule available</p>";
-      var popupContent = "<strong>" + zoneName + "</strong>" + scheduleHTML;
-      new mapboxgl.Popup()
-          .setLngLat(e.lngLat)
-          .setHTML(popupContent)
-          .addTo(map);
-    });
-    
-    // Click outside zones_layer: optional popup close logic
-    map.on('click', function(e) {
-      var features = map.queryRenderedFeatures(e.point, { layers: ['zones_layer'] });
-      if (!features.length) {
-          // No zone clicked, you could close or clear popups if needed
-      }
+    map.on('click','zones_layer', function(e){
+      var name=e.features[0].properties.name;
+      var content='<strong>'+name+'</strong>'+scheduleMapping[name];
+      showPopup([e.lngLat.lng,e.lngLat.lat], content);
     });
   });
-  
-  // Debug zoom changes
-  map.on('zoomend', function() {
-    console.log("Zoom changed to:", map.getZoom());
-  });
+
+  map.on('zoomend', function(){ console.log('Zoom:', map.getZoom()); });
 </script>
 </body>
-</html>
-`, mapboxToken, mobileMaxZoom, portraitZoom, landscapeZoom, desktopInitialZoom, minZoom, blurred, flCounties, roads, zones)
+</html>`+"", mapboxToken, mobileMaxZoom, portraitZoom, landscapeZoom, desktopInitialZoom, minZoom, blurred, flCounties, roads, zones)
 }
 
 func main() {
 	godotenv.Load()
-
 	kmlFile := "/Users/jon/fl_map_go/Eden_Layout_04.17.25.kml"
 	flCountiesGeoJSON := os.Getenv("FLORIDA_COUNTIES_GEOJSON")
 	roadsGeoJSON := os.Getenv("ROADWAYS_GEOJSON")
 	mapboxToken := os.Getenv("MAPBOX_TOKEN")
-
 	if flCountiesGeoJSON == "" || roadsGeoJSON == "" || mapboxToken == "" {
 		log.Fatal("Please set FLORIDA_COUNTIES_GEOJSON, ROADWAYS_GEOJSON, and MAPBOX_TOKEN in your environment.")
 	}
 
 	start := time.Now()
-
 	kmlData, err := os.ReadFile(kmlFile)
 	if err != nil {
 		log.Fatalf("Error reading KML file: %v", err)
 	}
-
-	// Exclude zones if needed
-	excludeZones := []string{"None"}
-
-	// Now convert the KML to GeoJSON
-	zonesFC := convertKMLToGeoJSON(kmlData, excludeZones)
+	zonesFC := convertKMLToGeoJSON(kmlData, []string{"None"})
 	zonesJSON, err := zonesFC.MarshalJSON()
 	if err != nil {
 		log.Fatalf("Error marshalling zones GeoJSON: %v", err)
 	}
-
-	// Read Florida counties
 	flCountiesData, err := os.ReadFile(flCountiesGeoJSON)
 	if err != nil {
 		log.Fatalf("Error reading Florida Counties GeoJSON: %v", err)
 	}
 	var flCountiesFC geojson.FeatureCollection
-	if err := json.Unmarshal(flCountiesData, &flCountiesFC); err != nil {
-		log.Fatalf("Error unmarshalling Florida Counties GeoJSON: %v", err)
-	}
-	flCountiesJSON, err := json.Marshal(flCountiesFC)
-	if err != nil {
-		log.Fatalf("Error marshalling Florida Counties GeoJSON: %v", err)
-	}
-
-	// Read roads
+	json.Unmarshal(flCountiesData, &flCountiesFC)
+	flCountiesJSON, _ := json.Marshal(flCountiesFC)
 	roadsData, err := os.ReadFile(roadsGeoJSON)
 	if err != nil {
 		log.Fatalf("Error reading Roads GeoJSON: %v", err)
 	}
 	var roadsFC geojson.FeatureCollection
-	if err := json.Unmarshal(roadsData, &roadsFC); err != nil {
-		log.Fatalf("Error unmarshalling Roads GeoJSON: %v", err)
-	}
-	roadsJSON, err := json.Marshal(roadsFC)
-	if err != nil {
-		log.Fatalf("Error marshalling Roads GeoJSON: %v", err)
-	}
-
-	// Build a blurred bounding box for the U.S.
-	usBbox := orb.Polygon{
-		{
-			{-130, 20},
-			{-130, 55},
-			{-60, 55},
-			{-60, 20},
-			{-130, 20},
-		},
-	}
-	blurredFeature := geojson.NewFeature(usBbox)
+	json.Unmarshal(roadsData, &roadsFC)
+	roadsJSON, _ := json.Marshal(roadsFC)
+	usBbox := orb.Polygon{{{-130, 20}, {-130, 55}, {-60, 55}, {-60, 20}, {-130, 20}}}
 	blurredFC := geojson.NewFeatureCollection()
-	blurredFC.Append(blurredFeature)
-	blurredJSON, err := blurredFC.MarshalJSON()
-	if err != nil {
-		log.Fatalf("Error marshalling blurred area GeoJSON: %v", err)
-	}
-
-	duration := time.Since(start).Seconds()
-	fmt.Printf("Data conversion took %.2f seconds.\n", duration)
-
-	htmlContent := buildHTML(
-		string(flCountiesJSON),
-		string(roadsJSON),
-		string(zonesJSON),
-		string(blurredJSON),
-		mapboxToken,
-	)
-
-	outputFile := "Delivery_zone_map.html"
-	err = os.WriteFile(outputFile, []byte(htmlContent), 0644)
-	if err != nil {
+	blurredFC.Append(geojson.NewFeature(usBbox))
+	blurredJSON, _ := blurredFC.MarshalJSON()
+	fmt.Printf("Data conversion took %.2f seconds.\n", time.Since(start).Seconds())
+	html := buildHTML(string(flCountiesJSON), string(roadsJSON), string(zonesJSON), string(blurredJSON), mapboxToken)
+	if err := os.WriteFile("Delivery_zone_map.html", []byte(html), 0644); err != nil {
 		log.Fatalf("Error writing HTML file: %v", err)
 	}
-	fmt.Printf("✅ Map saved to %s\n", outputFile)
+	fmt.Println("✅ Map saved to Delivery_zone_map.html")
 }
