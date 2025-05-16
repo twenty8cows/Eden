@@ -18,18 +18,20 @@ This project processes and renders delivery zones using:
 
 ## 🗂️ Directory Structure
 
+```text
 Eden/
 ├── data/
-│ ├── simplified_florida_counties.geojson
-│ ├── simplified_roads.geojson
-│ └── simplified_roads_50_percent.geojson
+│   ├── simplified_florida_counties.geojson
+│   ├── simplified_roads.geojson
+│   └── simplified_roads_50_percent.geojson
 ├── templates/
-│ └── iframe_template.html
+│   └── iframe_template.html
 ├── main.go
 ├── go.mod
 ├── go.sum
 └── output/
-└── delivery_zone_map.html
+    └── delivery_zone_map.html
+```
 
 
 ## Getting Started
