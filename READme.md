@@ -17,6 +17,7 @@ This project processes and renders delivery zones using:
 - **HTML/JS** — static frontend template
 
 ## 🗂️ Directory Structure
+
 Eden/
 ├── data/
 │ ├── simplified_florida_counties.geojson
