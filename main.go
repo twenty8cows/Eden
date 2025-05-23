@@ -443,7 +443,7 @@ map.on('moveend', updateLabelVisibility);
   const isPortrait = window.innerHeight > window.innerWidth;
   const isMobile = window.innerWidth < 768;
 
-  const mobilePortraitCenter = [-80.5, 27.0];
+  const mobilePortraitCenter = [-81.5, 27.0];
   const mobileLandscapeCenter = [-81.5, 26.0];
   const desktopCenter = [-81.4, 26.9944];
 
