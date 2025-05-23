@@ -195,7 +195,7 @@ func buildHTML(mapboxToken string, portraitZoom, landscapeZoom, desktopInitialZo
 
     .mapboxgl-ctrl-geocoder {
       width: 400px;
-      min-width: 180px;
+      min-width: 140px;
       font-size: 16px;
       margin: 12px;
       background-color: white;
@@ -268,7 +268,7 @@ func buildHTML(mapboxToken string, portraitZoom, landscapeZoom, desktopInitialZo
   mapboxgl.accessToken = '%s';
   var isMobile = window.innerWidth < 768;
   var isPortrait = window.innerHeight > window.innerWidth;
-  var mobilePortraitCenter = [-82.5, 27.0];
+  var mobilePortraitCenter = [-77.5, 27.0];
   var mobileLandscapeCenter = [-81.5, 26.0];
   var desktopCenter = [-81.4, 26.9944];  // default is [-84.4, 27.9944], 3D should start at [-81.4, 26.9944]
 
