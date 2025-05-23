@@ -488,8 +488,8 @@ func main() {
 	}
 
 	// Zoom configuration
-	portraitZoom := 4.0
-	landscapeZoom := 5.5
+	portraitZoom := 6.0
+	landscapeZoom := 5.5 // 5.5 works for landscape mode
 	desktopInitialZoom := 6.03
 	mobileMaxZoom := 16.0
 	minZoom := 2.0
