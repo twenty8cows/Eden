@@ -171,6 +171,21 @@ func buildHTML(mapboxToken string, portraitZoom, landscapeZoom, desktopInitialZo
   <link rel="stylesheet" href="https://api.tiles.mapbox.com/mapbox-gl-js/plugins/mapbox-gl-geocoder/v4.7.2/mapbox-gl-geocoder.css" type="text/css" />
   <style>
     body { margin: 0; padding: 0; }
+
+    #joke-button {
+      position: absolute;
+      top: 60px;
+      right: 20px;
+      z-index: 1000;
+      transform: translateX(-50);
+      background: #fff;
+      border: 2px solid #888;
+      padding: 10px;
+      font-family: sans-serif;
+      border-radius: 5px;
+      cursor: pointer;
+    }
+
     #map {
       position: absolute;
       top: 0;
@@ -249,7 +264,7 @@ func buildHTML(mapboxToken string, portraitZoom, landscapeZoom, desktopInitialZo
 </head>
 <body>
 <button class="toggle-3d" onclick="map.setPitch(map.getPitch() === 0 ? 45 : 0)">Toggle 3D</button>
-
+<button id="joke-button">Tell Me a Joke</button>
 
 <div id="map"></div>
 <div class="legend">
@@ -265,6 +280,18 @@ func buildHTML(mapboxToken string, portraitZoom, landscapeZoom, desktopInitialZo
   </div>
 </div>
 <script>
+  document.addEventListener("DOMContentLoaded", function () {
+    document.getElementById("joke-button").addEventListener("click", function () {
+      fetch("https://icanhazdadjoke.com/", {
+        headers: { Accept: "application/json" }
+      })
+        .then(res => res.json())
+        .then(data => alert(data.joke))
+        .catch(() => alert("Couldn't fetch a joke 😢"));
+    });
+  });
+
+
   mapboxgl.accessToken = '%s';
   var isMobile = window.innerWidth < 768;
   var isPortrait = window.innerHeight > window.innerWidth;
@@ -481,6 +508,7 @@ map.on('moveend', updateLabelVisibility);
 		portraitZoom,       // %.2f → for JS reset zoom
 		landscapeZoom,      // %.2f → for JS reset zoom
 		desktopInitialZoom, // %.2f → for JS reset zoom
+
 	)
 }
 
