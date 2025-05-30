@@ -107,6 +107,12 @@
 <button id="joke-button">Tell Me a Joke</button>
 
 <div id="map"></div>
+<div id="joke-box" style="position: absolute; top: 110px; right: 20px; background: #fff; padding: 12px 16px 12px 16px; border: 2px solid #888; border-radius: 6px; font-family: sans-serif; z-index: 1000; display: none; max-width: 300px; box-shadow: 0 2px 8px rgba(0,0,0,0.2); position: absolute;">
+  <button id="joke-close" style="position: absolute; top: 4px; right: 6px; background: transparent; border: none; font-weight: bold; cursor: pointer;">×</button>
+  <div id="joke-text" style="margin-top: 10px;"></div>
+</div>
+
+
 <div class="legend">
   <h4 style="margin: 0; text-align: center;">Delivery Areas</h4>
   <hr style="border: 1px solid black;" />
@@ -121,15 +127,41 @@
 </div>
 <script>
   document.addEventListener("DOMContentLoaded", function () {
-    document.getElementById("joke-button").addEventListener("click", function () {
-      fetch("https://icanhazdadjoke.com/", {
-        headers: { Accept: "application/json" }
+  const jokeBox = document.getElementById("joke-box");
+  const jokeText = document.getElementById("joke-text");
+  const jokeBtn = document.getElementById("joke-button");
+  const jokeClose = document.getElementById("joke-close");
+
+  let jokeTimeout;
+
+  jokeBtn.addEventListener("click", function () {
+    fetch("https://icanhazdadjoke.com/", {
+      headers: { Accept: "application/json" }
+    })
+      .then(res => res.json())
+      .then(data => {
+        jokeText.textContent = data.joke;
+        jokeBox.style.display = "block";
+        clearTimeout(jokeTimeout);
+        jokeTimeout = setTimeout(() => {
+          jokeBox.style.display = "none";
+        }, 8000);
       })
-        .then(res => res.json())
-        .then(data => alert(data.joke))
-        .catch(() => alert("Couldn't fetch a joke 😢"));
-    });
+      .catch(() => {
+        jokeText.textContent = "Couldn't fetch a joke 😢";
+        jokeBox.style.display = "block";
+        clearTimeout(jokeTimeout);
+        jokeTimeout = setTimeout(() => {
+          jokeBox.style.display = "none";
+        }, 5000);
+      });
   });
+
+  jokeClose.addEventListener("click", function () {
+    jokeBox.style.display = "none";
+    clearTimeout(jokeTimeout);
+  });
+});
 
 
   mapboxgl.accessToken = 'pk.eyJ1Ijoiam9ubnltNDMiLCJhIjoiY203M29ocGJ5MDFpdTJqbXR1dGIzaXo3YiJ9.e4tgnmUuDmi8s8A9MaoGHQ';
