@@ -369,6 +369,7 @@ func buildHTML(mapboxToken string, portraitZoom, landscapeZoom, desktopInitialZo
     "Mt. Dora": "<ul><li>Mondays & Tuesdays: 11am-5pm</li></ul><a href='https://www.edenflorida.com/shop/' target='_blank' style='display: block; text-align: center;'>Shop Now!</a>",
     "Orlando South": "<ul><li>Tuesday: 11am-5pm</li></ul><a href='https://www.edenflorida.com/shop/' target='_blank' style='display: block; text-align: center;'>Shop Now!</a>",
     "West Palm": "<ul><li>Wednesday: 12pm-4pm</li></ul><a href='https://www.edenflorida.com/shop/' target='_blank' style='display: block; text-align: center;'>Shop Now!</a>",
+    "Okeechobee": "<ul><li>Wednesday: 12pm-4pm</li></ul><a href='https://www.edenflorida.com/shop/' target='_blank' style='display: block; text-align: center;'>Shop Now!</a>",
     "Tampa": "<ul><li>Thursday: 12pm-4pm</li></ul><a href='https://www.edenflorida.com/shop/' target='_blank' style='display: block; text-align: center;'>Shop Now!</a>",
     "Pasco": "<ul><li>Thursday: 12pm-4pm</li></ul><a href='https://www.edenflorida.com/shop/' target='_blank' style='display: block; text-align: center;'>Shop Now!</a>",
     "Brooksville": "<ul><li>Thursday: 12pm-4pm</li></ul><a href='https://www.edenflorida.com/shop/' target='_blank' style='display: block; text-align: center;'>Shop Now!</a>",
@@ -547,7 +548,7 @@ map.on('moveend', updateLabelVisibility);
 func main() {
 	godotenv.Load()
 
-	kmlFile := "/Users/jon/fl_map_go/Eden Layout 06.14.25.kml"
+	kmlFile := "/Users/jon/fl_map_go/Eden Layout 06.18.25.kml"
 	roadsGeoJSON := os.Getenv("ROADWAYS_GEOJSON")
 	mapboxToken := os.Getenv("MAPBOX_TOKEN")
 
