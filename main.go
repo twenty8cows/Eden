@@ -209,8 +209,9 @@ func buildHTML(mapboxToken string, portraitZoom, landscapeZoom, desktopInitialZo
     }
 
     .mapboxgl-ctrl-geocoder {
-      width: 400px;
       min-width: 140px;
+      width: 33%%;
+      max-width: 320px;
       font-size: 16px;
       margin: 12px;
       background-color: white;
@@ -584,7 +585,7 @@ func main() {
 		string(zonesJSON),
 	)
 
-	if err := os.WriteFile("Delivery_zone_map.html", []byte(html), 0644); err != nil {
+	if err := os.WriteFile("Test_Delivery_zone_map.html", []byte(html), 0644); err != nil {
 		log.Fatalf("Error writing HTML file: %v", err)
 	}
 	fmt.Printf("✅ Map saved to Delivery_zone_map.html (%.2fs)\n", time.Since(start).Seconds())

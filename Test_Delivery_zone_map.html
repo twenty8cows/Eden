@@ -49,8 +49,9 @@
     }
 
     .mapboxgl-ctrl-geocoder {
-      width: 400px;
       min-width: 140px;
+      width: 33%;
+      max-width: 320px;
       font-size: 16px;
       margin: 12px;
       background-color: white;
@@ -288,21 +289,21 @@ map.on('moveend', updateLabelVisibility);
 });
 
 
-    // // Blur mask outside Florida
-    // map.addSource('blur-mask', {
-    //   type: 'geojson',
-    //   data: 'florida_mask_from_detailed_boundary.geojson'
-    // });
-    // map.addLayer({
-    //   id: 'blur-layer',
-    //   type: 'fill',
-    //   source: 'blur-mask',
-    //   layout: {},
-    //   paint: {
-    //     'fill-color': '#122017',
-    //     'fill-opacity': 1.0
-    //   }
-    // }, 'zones_layer');
+    // Blur mask outside Florida
+    map.addSource('blur-mask', {
+      type: 'geojson',
+      data: 'florida_mask_from_detailed_boundary.geojson'
+    });
+    map.addLayer({
+      id: 'blur-layer',
+      type: 'fill',
+      source: 'blur-mask',
+      layout: {},
+      paint: {
+        'fill-color': '#122017',
+        'fill-opacity': 1.0
+      }
+    }, 'zones_layer');
 
     let currentPopup = null;
 
