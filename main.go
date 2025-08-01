@@ -549,7 +549,7 @@ map.on('moveend', updateLabelVisibility);
 func main() {
 	godotenv.Load()
 
-	kmlFile := "/Users/jon/fl_map_go/Eden Layout 06.18.25.kml"
+	kmlFile := "/Users/jon/fl_map_go/Eden Layout 08.01.25.kml"
 	roadsGeoJSON := os.Getenv("ROADWAYS_GEOJSON")
 	mapboxToken := os.Getenv("MAPBOX_TOKEN")
 
@@ -588,5 +588,5 @@ func main() {
 	if err := os.WriteFile("Test_Delivery_zone_map.html", []byte(html), 0644); err != nil {
 		log.Fatalf("Error writing HTML file: %v", err)
 	}
-	fmt.Printf("✅ Map saved to Delivery_zone_map.html (%.2fs)\n", time.Since(start).Seconds())
+	fmt.Printf("✅ Map saved to Delivery_zone_map.html (%.6fs)\n", time.Since(start).Seconds())
 }
