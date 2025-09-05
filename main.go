@@ -221,18 +221,18 @@ func buildHTML(mapboxToken string, portraitZoom, landscapeZoom, desktopInitialZo
     }
 
     .toggle-3d {
-    position: absolute;
-    top: 10px;
-    right: 400px;  /* adjust this value to move the box horizontally */
-    z-index: 999;
-    background: white;
-    padding: 8px 12px;
-    border: 1px solid #ccc;
-    border-radius: 4px;
-    font-family: Arial, sans-serif;
-    cursor: pointer;
-    transition: right 0.3s ease-in-out; /* enable smooth sliding */
-  }
+      position: absolute;
+      top: 10px;
+      right: 400px;
+      z-index: 999;
+      background: white;
+      padding: 8px 12px;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+      font-family: Arial, sans-serif;
+      cursor: pointer;
+      transition: right 0.3s ease-in-out;
+    }
 
     .mapboxgl-popup {
       max-width: 300px;
@@ -251,9 +251,7 @@ func buildHTML(mapboxToken string, portraitZoom, landscapeZoom, desktopInitialZo
       text-align: left;
     }
 
-    .mapboxgl-popup-tip {
-    border-top-color: #ffffff; /* match popup background */
-  }
+    .mapboxgl-popup-tip { border-top-color: #ffffff; }
 
     @media only screen and (max-width: 768px) {
       .mapboxgl-ctrl-top-left {
@@ -273,7 +271,6 @@ func buildHTML(mapboxToken string, portraitZoom, landscapeZoom, desktopInitialZo
   <div id="joke-text" style="margin-top: 10px;"></div>
 </div>
 
-
 <div class="legend">
   <h4 style="margin: 0; text-align: center;">Delivery Areas</h4>
   <hr style="border: 1px solid black;" />
@@ -287,34 +284,27 @@ func buildHTML(mapboxToken string, portraitZoom, landscapeZoom, desktopInitialZo
   </div>
 </div>
 <script>
-  document.addEventListener("DOMContentLoaded", function () {
+document.addEventListener("DOMContentLoaded", function () {
   const jokeBox = document.getElementById("joke-box");
   const jokeText = document.getElementById("joke-text");
   const jokeBtn = document.getElementById("joke-button");
   const jokeClose = document.getElementById("joke-close");
-
   let jokeTimeout;
 
   jokeBtn.addEventListener("click", function () {
-    fetch("https://icanhazdadjoke.com/", {
-      headers: { Accept: "application/json" }
-    })
+    fetch("https://icanhazdadjoke.com/", { headers: { Accept: "application/json" }})
       .then(res => res.json())
       .then(data => {
         jokeText.textContent = data.joke;
         jokeBox.style.display = "block";
         clearTimeout(jokeTimeout);
-        jokeTimeout = setTimeout(() => {
-          jokeBox.style.display = "none";
-        }, 8000);
+        jokeTimeout = setTimeout(() => { jokeBox.style.display = "none"; }, 8000);
       })
       .catch(() => {
         jokeText.textContent = "Couldn't fetch a joke 😢";
         jokeBox.style.display = "block";
         clearTimeout(jokeTimeout);
-        jokeTimeout = setTimeout(() => {
-          jokeBox.style.display = "none";
-        }, 5000);
+        jokeTimeout = setTimeout(() => { jokeBox.style.display = "none"; }, 5000);
       });
   });
 
@@ -324,211 +314,220 @@ func buildHTML(mapboxToken string, portraitZoom, landscapeZoom, desktopInitialZo
   });
 });
 
+mapboxgl.accessToken = '%s';
+var isMobile = window.innerWidth < 768;
+var isPortrait = window.innerHeight > window.innerWidth;
+var mobilePortraitCenter = [-81.5, 27.0];
+var mobileLandscapeCenter = [-81.5, 26.0];
+var desktopCenter = [-81.4, 26.9944];
 
-  mapboxgl.accessToken = '%s';
-  var isMobile = window.innerWidth < 768;
-  var isPortrait = window.innerHeight > window.innerWidth;
-  var mobilePortraitCenter = [-81.5, 27.0];
-  var mobileLandscapeCenter = [-81.5, 26.0];
-  var desktopCenter = [-81.4, 26.9944];  // default is [-84.4, 27.9944], 3D should start at [-81.4, 26.9944]
+var initialZoom = isMobile ? (isPortrait ? %.2f : %.2f) : %.2f;
+var maxZoom = isMobile ? %.2f : 20;
+var minZoom = %.2f;
 
-  var initialZoom = isMobile ? (isPortrait ? %.2f : %.2f) : %.2f;
-  var maxZoom = isMobile ? %.2f : 20;
-  var minZoom = %.2f;
+var centerCoordinates = isMobile
+    ? (isPortrait ? mobilePortraitCenter : mobileLandscapeCenter)
+    : desktopCenter;
 
-  var centerCoordinates = isMobile
-      ? (isPortrait ? mobilePortraitCenter : mobileLandscapeCenter)
-      : desktopCenter;
+var mapBounds = [[-95, 20], [-70, 35]];
 
-  var mapBounds = [[-95, 20], [-70, 35]];
-
-  var map = new mapboxgl.Map({
-      container: 'map',
-      style: 'mapbox://styles/mapbox/streets-v12',
-      center: centerCoordinates,
-      zoom: initialZoom,
-      maxZoom: maxZoom,
-      minZoom: minZoom,
-      pitch: 45,
-      bearing: -7.8,
-      antialias: true,
-      maxBounds: mapBounds
-  });
-
-  if (!isMobile) {
-      map.dragPan.disable();
-      map.touchZoomRotate.disable();
-  }
-
-  map.addControl(new mapboxgl.NavigationControl(), 'top-left');
-
-  var scheduleMapping = {
-    "Charlotte County": "<ul><li>Sunday: 11am-4pm</li></ul><a href='https://www.edenflorida.com/shop/' target='_blank' style='display: block; text-align: center;'>Shop Now!</a>",
-    "Gulf Coast": "<ul><li>Sunday: 11am-4pm</li></ul><a href='https://www.edenflorida.com/shop/' target='_blank' style='display: block; text-align: center;'>Shop Now!</a>",
-    "Orlando North": "<ul><li>Monday: 11am-5pm</li></ul><a href='https://www.edenflorida.com/shop/' target='_blank' style='display: block; text-align: center;'>Shop Now!</a>",
-    "Volusia County": "<ul><li>Monday: 12pm-4pm</li></ul><a href='https://www.edenflorida.com/shop/' target='_blank' style='display: block; text-align: center;'>Shop Now!</a>",
-    "Mt. Dora": "<ul><li>Mondays & Tuesdays: 11am-5pm</li></ul><a href='https://www.edenflorida.com/shop/' target='_blank' style='display: block; text-align: center;'>Shop Now!</a>",
-    "Orlando South": "<ul><li>Tuesday: 11am-5pm</li></ul><a href='https://www.edenflorida.com/shop/' target='_blank' style='display: block; text-align: center;'>Shop Now!</a>",
-    "West Palm": "<ul><li>Wednesday: 12pm-4pm</li></ul><a href='https://www.edenflorida.com/shop/' target='_blank' style='display: block; text-align: center;'>Shop Now!</a>",
-    "Okeechobee": "<ul><li>Wednesday: 12pm-4pm</li></ul><a href='https://www.edenflorida.com/shop/' target='_blank' style='display: block; text-align: center;'>Shop Now!</a>",
-    "Tampa": "<ul><li>Thursday: 12pm-4pm</li></ul><a href='https://www.edenflorida.com/shop/' target='_blank' style='display: block; text-align: center;'>Shop Now!</a>",
-    "Pasco": "<ul><li>Thursday: 12pm-4pm</li></ul><a href='https://www.edenflorida.com/shop/' target='_blank' style='display: block; text-align: center;'>Shop Now!</a>",
-    "Brooksville": "<ul><li>Thursday: 12pm-4pm</li></ul><a href='https://www.edenflorida.com/shop/' target='_blank' style='display: block; text-align: center;'>Shop Now!</a>",
-    "Pinellas": "<ul><li>Thursday: 12pm-4pm</li></ul><a href='https://www.edenflorida.com/shop/' target='_blank' style='display: block; text-align: center;'>Shop Now!</a>",
-    "Citrus Zone": "<ul><li>Thursday: 11am-4pm</li></ul><a href='https://www.edenflorida.com/shop/' target='_blank' style='display: block; text-align: center;'>Shop Now!</a>",
-    "Jacksonville": "<ul><li>Friday: 12pm-4pm</li></ul><a href='https://www.edenflorida.com/shop/' target='_blank' style='display: block; text-align: center;'>Shop Now!</a>",
-    "Marion County": "<ul><li>Friday: 12pm-4pm</li></ul><a href='https://www.edenflorida.com/shop/' target='_blank' style='display: block; text-align: center;'>Shop Now!</a>",
-    "Gainesville": "<ul><li>Friday: 12pm-4pm</li></ul><a href='https://www.edenflorida.com/shop/' target='_blank' style='display: block; text-align: center;'>Shop Now!</a>",
-    "Space Coast": "<ul><li>Saturday: 12pm-4pm</li></ul><a href='https://www.edenflorida.com/shop/' target='_blank' style='display: block; text-align: center;'>Shop Now!</a>",
-    "Vero Beach": "<ul><li>Saturday: 12pm-4pm</li></ul><a href='https://www.edenflorida.com/shop/' target='_blank' style='display: block; text-align: center;'>Shop Now!</a>"
-  };
-
-  var geocoder = new MapboxGeocoder({ accessToken:mapboxgl.accessToken, mapboxgl:mapboxgl, marker:false, placeholder:'Enter an Florida Address', minLength:5,bbox:[-88.0,24.0,-79.5,31.1] });
-  map.addControl(geocoder, 'top-right');
-
-  map.on('load', function(){
-    // Florida delivery zones
-    map.addSource('zones',{ type:'geojson', data:%s });
-    map.addLayer({
-      id:'zones_layer',
-      type:'fill',
-      source:'zones',
-      paint:{ 'fill-color':'#a28834','fill-outline-color':'#000','fill-opacity':0.8 }
-    });
-    const flBounds = [[-88.0, 24.0], [-79.5, 31.1]];
-
-function isInsideFlorida(bounds) {
-  return bounds.getNorth() <= 31.1 &&
-         bounds.getSouth() >= 24.0 &&
-         bounds.getWest() >= -88.0 &&
-         bounds.getEast() <= -79.5;
-}
-
-function updateLabelVisibility() {
-  const bounds = map.getBounds();
-  const inside = isInsideFlorida(bounds);
-
-  const labelLayers = [
-    'poi-label',
-    'airport-label',
-    'settlement-label',
-    'state-label',
-    'country-label',
-    'marine-label',
-    'place-label',
-    'road-label'
-  ];
-
-  labelLayers.forEach(id => {
-    if (map.getLayer(id)) {
-      map.setLayoutProperty(id, 'visibility', inside ? 'visible' : 'none');
-    }
-  });
-}
-
-// Initial check when map loads
-updateLabelVisibility();
-
-// Update on movement
-map.on('moveend', updateLabelVisibility);
-
-
-    map.addLayer({
-  id: '3d-buildings',
-  source: 'composite',
-  'source-layer': 'building',
-  filter: ['==', 'extrude', 'true'],
-  type: 'fill-extrusion',
-  minzoom: 15,
-  paint: {
-    'fill-extrusion-color': '#aaa',
-    'fill-extrusion-height': ['get', 'height'],
-    'fill-extrusion-base': ['get', 'min_height'],
-    'fill-extrusion-opacity': 0.6
-  }
+var map = new mapboxgl.Map({
+    container: 'map',
+    style: 'mapbox://styles/mapbox/streets-v12',
+    center: centerCoordinates,
+    zoom: initialZoom,
+    maxZoom: maxZoom,
+    minZoom: minZoom,
+    pitch: 45,
+    bearing: -7.8,
+    antialias: true,
+    maxBounds: mapBounds
 });
 
+if (!isMobile) {
+    map.dragPan.disable();
+    map.touchZoomRotate.disable();
+}
 
-    // Blur mask outside Florida
-    map.addSource('blur-mask', {
-      type: 'geojson',
-      data: 'florida_mask_from_detailed_boundary.geojson'
-    });
-    map.addLayer({
-      id: 'blur-layer',
-      type: 'fill',
-      source: 'blur-mask',
-      layout: {},
-      paint: {
-        'fill-color': '#122017',
-        'fill-opacity': 1.0
-      }
-    }, 'zones_layer');
+map.addControl(new mapboxgl.NavigationControl(), 'top-left');
 
-    let currentPopup = null;
+var scheduleMapping = {
+  "Charlotte County": "<ul><li>Sunday: 11am-4pm</li></ul><a href='https://www.edenflorida.com/shop/' target='_blank' style='display: block; text-align: center;'>Shop Now!</a>",
+  "Gulf Coast": "<ul><li>Sunday: 11am-4pm</li></ul><a href='https://www.edenflorida.com/shop/' target='_blank' style='display: block; text-align: center;'>Shop Now!</a>",
+  "Orlando North": "<ul><li>Monday: 11am-5pm</li></ul><a href='https://www.edenflorida.com/shop/' target='_blank' style='display: block; text-align: center;'>Shop Now!</a>",
+  "Volusia County": "<ul><li>Monday: 12pm-4pm</li></ul><a href='https://www.edenflorida.com/shop/' target='_blank' style='display: block; text-align: center;'>Shop Now!</a>",
+  "Mt. Dora": "<ul><li>Mondays & Tuesdays: 11am-5pm</li></ul><a href='https://www.edenflorida.com/shop/' target='_blank' style='display: block; text-align: center;'>Shop Now!</a>",
+  "Orlando South": "<ul><li>Tuesday: 11am-5pm</li></ul><a href='https://www.edenflorida.com/shop/' target='_blank' style='display: block; text-align: center;'>Shop Now!</a>",
+  "West Palm": "<ul><li>Wednesday: 12pm-4pm</li></ul><a href='https://www.edenflorida.com/shop/' target='_blank' style='display: block; text-align: center;'>Shop Now!</a>",
+  "Okeechobee": "<ul><li>Wednesday: 12pm-4pm</li></ul><a href='https://www.edenflorida.com/shop/' target='_blank' style='display: block; text-align: center;'>Shop Now!</a>",
+  "Tampa": "<ul><li>Thursday: 12pm-4pm</li></ul><a href='https://www.edenflorida.com/shop/' target='_blank' style='display: block; text-align: center;'>Shop Now!</a>",
+  "Pasco": "<ul><li>Thursday: 12pm-4pm</li></ul><a href='https://www.edenflorida.com/shop/' target='_blank' style='display: block; text-align: center;'>Shop Now!</a>",
+  "Brooksville": "<ul><li>Thursday: 12pm-4pm</li></ul><a href='https://www.edenflorida.com/shop/' target='_blank' style='display: block; text-align: center;'>Shop Now!</a>",
+  "Pinellas": "<ul><li>Thursday: 12pm-4pm</li></ul><a href='https://www.edenflorida.com/shop/' target='_blank' style='display: block; text-align: center;'>Shop Now!</a>",
+  "Citrus Zone": "<ul><li>Thursday: 11am-4pm</li></ul><a href='https://www.edenflorida.com/shop/' target='_blank' style='display: block; text-align: center;'>Shop Now!</a>",
+  "Jacksonville": "<ul><li>Friday: 12pm-4pm</li></ul><a href='https://www.edenflorida.com/shop/' target='_blank' style='display: block; text-align: center;'>Shop Now!</a>",
+  "Marion County": "<ul><li>Friday: 12pm-4pm</li></ul><a href='https://www.edenflorida.com/shop/' target='_blank' style='display: block; text-align: center;'>Shop Now!</a>",
+  "Gainesville": "<ul><li>Friday: 12pm-4pm</li></ul><a href='https://www.edenflorida.com/shop/' target='_blank' style='display: block; text-align: center;'>Shop Now!</a>",
+  "Space Coast": "<ul><li>Saturday: 12pm-4pm</li></ul><a href='https://www.edenflorida.com/shop/' target='_blank' style='display: block; text-align: center;'>Shop Now!</a>",
+  "Vero Beach": "<ul><li>Saturday: 12pm-4pm</li></ul><a href='https://www.edenflorida.com/shop/' target='_blank' style='display: block; text-align: center;'>Shop Now!</a>"
+};
+
+var geocoder = new MapboxGeocoder({ accessToken:mapboxgl.accessToken, mapboxgl:mapboxgl, marker:false, placeholder:'Enter an Florida Address', minLength:5, bbox:[-88.0,24.0,-79.5,31.1] });
+map.addControl(geocoder, 'top-right');
+
+map.on('load', function(){
+  // Florida delivery zones
+  map.addSource('zones',{ type:'geojson', data:%s });
+  map.addLayer({
+    id:'zones_layer',
+    type:'fill',
+    source:'zones',
+    paint:{ 'fill-color':'#a28834','fill-outline-color':'#000','fill-opacity':0.8 }
+  });
+
+  const flBounds = [[-88.0, 24.0], [-79.5, 31.1]];
+
+  function isInsideFlorida(bounds) {
+    return bounds.getNorth() <= 31.1 &&
+           bounds.getSouth() >= 24.0 &&
+           bounds.getWest() >= -88.0 &&
+           bounds.getEast() <= -79.5;
+  }
+
+  function updateLabelVisibility() {
+    const bounds = map.getBounds();
+    const inside = isInsideFlorida(bounds);
+    const labelLayers = [
+      'poi-label','airport-label','settlement-label','state-label',
+      'country-label','marine-label','place-label','road-label'
+    ];
+    labelLayers.forEach(id => { if (map.getLayer(id)) map.setLayoutProperty(id, 'visibility', inside ? 'visible' : 'none'); });
+  }
+
+  updateLabelVisibility();
+  map.on('moveend', updateLabelVisibility);
+
+  map.addLayer({
+    id: '3d-buildings',
+    source: 'composite',
+    'source-layer': 'building',
+    filter: ['==', 'extrude', 'true'],
+    type: 'fill-extrusion',
+    minzoom: 15,
+    paint: {
+      'fill-extrusion-color': '#aaa',
+      'fill-extrusion-height': ['get', 'height'],
+      'fill-extrusion-base': ['get', 'min_height'],
+      'fill-extrusion-opacity': 0.6
+    }
+  });
+
+  // Blur mask outside Florida
+  // map.addSource('blur-mask', { type: 'geojson', data: 'florida_mask_from_detailed_boundary.geojson' });
+  // map.addLayer({
+  //   id: 'blur-layer',
+  //   type: 'fill',
+  //   source: 'blur-mask',
+  //   layout: {},
+  //   paint: { 'fill-color': '#122017', 'fill-opacity': 1.0 }
+  // }, 'zones_layer');
+
+  let currentPopup = null;
 
   function showPopup(point, content) {
-    if (currentPopup) {
-      currentPopup.remove();
-    }
+    if (currentPopup) currentPopup.remove();
     currentPopup = new mapboxgl.Popup({ offset:15, className:'custom-popup', closeButton:true })
       .setLngLat(point)
       .setHTML(content)
       .addTo(map);
   }
 
-    geocoder.on('result', function(e){
-      var point = e.result.geometry.coordinates;
-      var foundZone = null;
-      var zonesData = map.getSource('zones')._data;
-      var pt = turf.point(point);
-      zonesData.features.forEach(function(f){ if((f.geometry.type==='Polygon'||f.geometry.type==='MultiPolygon')&&turf.booleanPointInPolygon(pt,f))foundZone=f; });
-      var content;
-      if(foundZone){
-        var name=foundZone.properties.name;
-        content='<strong>'+name+'</strong>'+scheduleMapping[name];
-      } else {
-        content='<strong>We aren\'t delivering here yet...</strong><p><a href="https://forms.office.com/Pages/ResponsePage.aspx?id=bGCi-r969UWm3mPaR2jxQ-cyCvDoRBxCkmEJWte2jEVUMDdTTlNLU1BNWjBORDNNSjczOTVPOTRFRy4u">Tell us where to go next!</a></p>';
+  // ----- FIXED, ROBUST HANDLER -----
+  geocoder.on('result', function(e){
+    const point = e.result.geometry.coordinates;
+
+    // Build content based on zone hit
+    let foundZone = null;
+    const zonesData = map.getSource('zones')._data;
+    const pt = turf.point(point);
+
+    // break early on first match
+    zonesData.features.some(function(f){
+      if ((f.geometry.type === 'Polygon' || f.geometry.type === 'MultiPolygon') &&
+          turf.booleanPointInPolygon(pt, f)) {
+        foundZone = f;
+        return true;
       }
-      map.flyTo({ center:point, zoom:16, speed:1.2, curve:1.42 });
-      map.once('moveend',function(){ showPopup(point,content); if(isMobile){ map.dragPan.enable(); map.touchZoomRotate.enable(); map.resize(); } });
+      return false;
     });
 
-    map.on('click','zones_layer', function(e){
-      var name=e.features[0].properties.name;
-      var content='<strong>'+name+'</strong>'+scheduleMapping[name];
-      showPopup([e.lngLat.lng,e.lngLat.lat], content);
+    const name = foundZone ? foundZone.properties.name : null;
+    const content = foundZone
+      ? '<strong>'+name+'</strong>' + (scheduleMapping[name] || '')
+      : '<strong>We aren\'t delivering here yet...</strong><p><a href="https://forms.office.com/Pages/ResponsePage.aspx?id=bGCi-r969UWm3mPaR2jxQ-cyCvDoRBxCkmEJWte2jEVUMDdTTlNLU1BNWjBORDNNSjczOTVPOTRFRy4u" target="_blank">Tell us where to go next!</a></p>';
+
+    // Always clear any existing popup immediately to avoid stale content
+    if (currentPopup) { currentPopup.remove(); currentPopup = null; }
+
+    // Compute the target zoom exactly like your other flows
+    const targetZoom = (isMobile ? (isPortrait ? %.2f : %.2f) : %.2f);
+
+    // Decide if the map will meaningfully move; if not, show immediately
+    const sameCenter = Math.abs(map.getCenter().lng - point[0]) < 1e-6 &&
+                       Math.abs(map.getCenter().lat - point[1]) < 1e-6;
+    const sameZoom = Math.abs(map.getZoom() - targetZoom) < 1e-6;
+
+    if (sameCenter && sameZoom) {
+      showPopup(point, content);
+      return;
+    }
+
+    // Fly, then show on moveend, with fallback if moveend doesn't fire
+    let fired = false;
+    const onMoveEnd = () => {
+      if (fired) return;
+      fired = true;
+      map.off('moveend', onMoveEnd);
+      showPopup(point, content);
+      if (isMobile) { map.dragPan.enable(); map.touchZoomRotate.enable(); map.resize(); }
+    };
+
+    map.on('moveend', onMoveEnd);
+    setTimeout(onMoveEnd, 1200); // fallback
+
+    map.flyTo({ center:point, zoom:isMobile?(isPortrait?portraitZoom:landscapeZoom):16, speed:1.2, curve:1.42 });
+
+  });
+  // ----- END FIX -----
+
+  map.on('click','zones_layer', function(e){
+    var name=e.features[0].properties.name;
+    var content='<strong>'+name+'</strong>'+scheduleMapping[name];
+    showPopup([e.lngLat.lng,e.lngLat.lat], content);
+  });
+
+  setTimeout(() => {
+    const isPortrait = window.innerHeight > window.innerWidth;
+    const isMobile = window.innerWidth < 768;
+
+    const mobilePortraitCenter = [-81.5, 27.0];
+    const mobileLandscapeCenter = [-81.5, 26.0];
+    const desktopCenter = [-81.4, 26.9944];
+
+    const targetCenter = isMobile ? (isPortrait ? mobilePortraitCenter : mobileLandscapeCenter) : desktopCenter;
+    const targetZoom = isMobile ? (isPortrait ? %.2f : %.2f) : %.2f;
+
+    map.flyTo({
+      center: targetCenter,
+      zoom: targetZoom,
+      speed: 1.0,
+      curve: 1.2,
+      essential: true
     });
+  }, 30000);
+});
 
-    setTimeout(() => {
-  const isPortrait = window.innerHeight > window.innerWidth;
-  const isMobile = window.innerWidth < 768;
-
-  const mobilePortraitCenter = [-81.5, 27.0];
-  const mobileLandscapeCenter = [-81.5, 26.0];
-  const desktopCenter = [-81.4, 26.9944];
-
-  const targetCenter = isMobile
-    ? (isPortrait ? mobilePortraitCenter : mobileLandscapeCenter)
-    : desktopCenter;
-
-  const targetZoom = isMobile
-    ? (isPortrait ? %.2f : %.2f)
-    : %.2f;
-
-  map.flyTo({
-    center: targetCenter,
-    zoom: targetZoom,
-    speed: 1.0,
-    curve: 1.2,
-    essential: true
-  });
-}, 30000);
-
-
-  });
-
-  map.on('zoomend', function(){ console.log('Zoom:', map.getZoom()); });
+map.on('zoomend', function(){ console.log('Zoom:', map.getZoom()); });
 </script>
 </body>
 </html>`,
@@ -539,10 +538,14 @@ map.on('moveend', updateLabelVisibility);
 		mobileMaxZoom,      // %.2f
 		minZoom,            // %.2f
 		zones,              // %s
-		portraitZoom,       // %.2f → for JS reset zoom
-		landscapeZoom,      // %.2f → for JS reset zoom
-		desktopInitialZoom, // %.2f → for JS reset zoom
-
+		// placeholders for targetZoom inside geocoder handler
+		portraitZoom,       // %.2f
+		landscapeZoom,      // %.2f
+		desktopInitialZoom, // %.2f
+		// placeholders for the 30s reset flyTo
+		portraitZoom,       // %.2f
+		landscapeZoom,      // %.2f
+		desktopInitialZoom, // %.2f
 	)
 }
 
@@ -588,5 +591,5 @@ func main() {
 	if err := os.WriteFile("Test_Delivery_zone_map.html", []byte(html), 0644); err != nil {
 		log.Fatalf("Error writing HTML file: %v", err)
 	}
-	fmt.Printf("✅ Map saved to Delivery_zone_map.html (%.6fs)\n", time.Since(start).Seconds())
+	fmt.Printf("✅ Map saved to Test_Delivery_zone_map.html (%.6fs)\n", time.Since(start).Seconds())
 }
