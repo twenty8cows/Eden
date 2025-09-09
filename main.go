@@ -344,6 +344,24 @@ var map = new mapboxgl.Map({
     maxBounds: mapBounds
 });
 
+// Custom marker for Eden - Tampa store
+var el = document.createElement('div');
+el.className = 'custom-marker';
+el.style.backgroundImage = 'url("https://raw.githubusercontent.com/twenty8cows/Eden/main/Eden%%20Profile%%20Coin.jpg")';
+el.style.width = '20px';   // adjust size
+el.style.height = '20px';
+el.style.backgroundSize = 'cover';
+el.style.borderRadius = '50%%';  // makes it circular if your icon isn't already
+
+new mapboxgl.Marker(el)
+  .setLngLat([-82.50622788, 28.0459843])
+  .setPopup(
+    new mapboxgl.Popup().setHTML("<strong>Eden Tampa</strong><p><a href='https://www.google.com/search?q=eden+cannabis+tampa&sca_esv=48c2a6a335f0c113&sxsrf=AE3TifNBueNJ4VTPgPNPWw8zmwHHa5fEuQ%%3A1757363277265&source=hp&ei=TTy_aJ-GDr6EwbkP7veGqQ4&iflsig=AOw8s4IAAAAAaL9KXaRwgmTIJiMOG5gg1GFLbJ3YeuR5&oq=eden+&gs_lp=Egdnd3Mtd2l6IgVlZGVuICoCCAAyBBAjGCcyFBAuGIAEGJECGMcBGIoFGI4FGK8BMg4QLhiABBjHARiOBRivATILEC4YgAQYxwEYrwEyCBAuGIAEGLEDMggQLhiABBixAzIIEC4YgAQYsQMyCxAuGIAEGMcBGK8BMgUQABiABDILEC4YgAQYxwEYrwFIpQ5QAFiJBHAAeACQAQCYAa8BoAGOBaoBAzEuNLgBAcgBAPgBAZgCBaACpQXCAgoQIxiABBgnGIoFwgIREC4YgAQYkQIY0QMYxwEYigXCAhEQLhiABBixAxjRAxiDARjHAcICCxAuGIAEGLEDGIMBwgILEAAYgAQYsQMYgwHCAg4QLhiABBixAxiDARiKBcICCxAAGIAEGJECGIoFwgIIEAAYgAQYsQOYAwCSBwMxLjSgB-hksgcDMS40uAelBcIHBTAuMy4yyAcT&sclient=gws-wiz' target='_blank'>View on Google</a></p>")
+  )
+  .addTo(map);
+
+
+
 if (!isMobile) {
     map.dragPan.disable();
     map.touchZoomRotate.disable();
@@ -360,10 +378,10 @@ var scheduleMapping = {
   "Orlando South": "<ul><li>Tuesday: 11am-5pm</li></ul><a href='https://www.edenflorida.com/shop/' target='_blank' style='display: block; text-align: center;'>Shop Now!</a>",
   "West Palm": "<ul><li>Wednesday: 12pm-4pm</li></ul><a href='https://www.edenflorida.com/shop/' target='_blank' style='display: block; text-align: center;'>Shop Now!</a>",
   "Okeechobee": "<ul><li>Wednesday: 12pm-4pm</li></ul><a href='https://www.edenflorida.com/shop/' target='_blank' style='display: block; text-align: center;'>Shop Now!</a>",
-  "Tampa": "<ul><li>Thursday: 12pm-4pm</li></ul><a href='https://www.edenflorida.com/shop/' target='_blank' style='display: block; text-align: center;'>Shop Now!</a>",
+  // "Tampa": "<ul><li>Thursday: 12pm-4pm</li></ul><a href='https://www.edenflorida.com/shop/' target='_blank' style='display: block; text-align: center;'>Shop Now!</a>",
   "Pasco": "<ul><li>Thursday: 12pm-4pm</li></ul><a href='https://www.edenflorida.com/shop/' target='_blank' style='display: block; text-align: center;'>Shop Now!</a>",
   "Brooksville": "<ul><li>Thursday: 12pm-4pm</li></ul><a href='https://www.edenflorida.com/shop/' target='_blank' style='display: block; text-align: center;'>Shop Now!</a>",
-  "Pinellas": "<ul><li>Thursday: 12pm-4pm</li></ul><a href='https://www.edenflorida.com/shop/' target='_blank' style='display: block; text-align: center;'>Shop Now!</a>",
+  // "Pinellas": "<ul><li>Thursday: 12pm-4pm</li></ul><a href='https://www.edenflorida.com/shop/' target='_blank' style='display: block; text-align: center;'>Shop Now!</a>",
   "Citrus Zone": "<ul><li>Thursday: 11am-4pm</li></ul><a href='https://www.edenflorida.com/shop/' target='_blank' style='display: block; text-align: center;'>Shop Now!</a>",
   "Jacksonville": "<ul><li>Friday: 12pm-4pm</li></ul><a href='https://www.edenflorida.com/shop/' target='_blank' style='display: block; text-align: center;'>Shop Now!</a>",
   "Marion County": "<ul><li>Friday: 12pm-4pm</li></ul><a href='https://www.edenflorida.com/shop/' target='_blank' style='display: block; text-align: center;'>Shop Now!</a>",
