@@ -606,7 +606,7 @@ func main() {
 		string(zonesJSON),
 	)
 
-	if err := os.WriteFile("Test_Delivery_zone_map.html", []byte(html), 0644); err != nil {
+	if err := os.WriteFile("Delivery_zone_map.html", []byte(html), 0644); err != nil {
 		log.Fatalf("Error writing HTML file: %v", err)
 	}
 	fmt.Printf("✅ Map saved to Test_Delivery_zone_map.html (%.6fs)\n", time.Since(start).Seconds())
