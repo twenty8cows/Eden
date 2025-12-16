@@ -388,7 +388,8 @@ var scheduleMapping = {
   "Marion County": "<ul><li>Friday: 12pm-4pm</li></ul><a href='https://www.edenflorida.com/shop/' target='_blank' style='display: block; text-align: center;'>Shop Now!</a>",
   "Gainesville": "<ul><li>Friday: 12pm-4pm</li></ul><a href='https://www.edenflorida.com/shop/' target='_blank' style='display: block; text-align: center;'>Shop Now!</a>",
   "Vero Beach": "<ul><li>Friday: 12pm-4pm</li></ul><a href='https://www.edenflorida.com/shop/' target='_blank' style='display: block; text-align: center;'>Shop Now!</a>",
-  "Space Coast": "<ul><li>Friday: 12pm-4pm</li></ul><a href='https://www.edenflorida.com/shop/' target='_blank' style='display: block; text-align: center;'>Shop Now!</a>"
+  "Space Coast": "<ul><li>Friday: 12pm-4pm</li></ul><a href='https://www.edenflorida.com/shop/' target='_blank' style='display: block; text-align: center;'>Shop Now!</a>",
+  "Ft Myers": "<ul><li>Thursday: 12pm-4pm</li></ul><a href='https://www.edenflorida.com/shop/' target='_blank' style='display: block; text-align: center;'>Shop Now!</a>"
 };
 
 var geocoder = new MapboxGeocoder({ accessToken:mapboxgl.accessToken, mapboxgl:mapboxgl, marker:false, placeholder:'Enter an Florida Address', minLength:5, bbox:[-88.0,24.0,-79.5,31.1] });
@@ -571,7 +572,7 @@ map.on('zoomend', function(){ console.log('Zoom:', map.getZoom()); });
 func main() {
 	godotenv.Load()
 
-	kmlFile := "/Users/jon/fl_map_go/Eden Layout 11.01.25.kml"
+	kmlFile := "/Users/jon/fl_map_go/Eden Layout 12.15.25.kml"
 	roadsGeoJSON := os.Getenv("ROADWAYS_GEOJSON")
 	mapboxToken := os.Getenv("MAPBOX_TOKEN")
 
