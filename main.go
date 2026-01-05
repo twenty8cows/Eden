@@ -344,23 +344,36 @@ var map = new mapboxgl.Map({
     maxBounds: mapBounds
 });
 
-// Custom marker for Eden - Tampa store
-var el = document.createElement('div');
-el.className = 'custom-marker';
-el.style.backgroundImage = 'url("https://raw.githubusercontent.com/twenty8cows/Eden/main/Eden%%20Profile%%20Coin.jpg")';
-el.style.width = '20px';   // adjust size
-el.style.height = '20px';
-el.style.backgroundSize = 'cover';
-el.style.borderRadius = '50%%';  // makes it circular if your icon isn't already
+// Custom markers for Eden stores
+var el1 = document.createElement('div');
+el1.className = 'custom-marker';
+el1.style.backgroundImage = 'url("https://raw.githubusercontent.com/twenty8cows/Eden/main/Eden%%20Profile%%20Coin.jpg")';
+el1.style.width = '20px';   // adjust size
+el1.style.height = '20px';
+el1.style.backgroundSize = 'cover';
+el1.style.borderRadius = '50%%';  // makes it circular if your icon isn't already
 
-new mapboxgl.Marker(el)
+var el2 = document.createElement('div');
+el2.className = 'custom-marker';
+el2.style.backgroundImage = 'url("https://raw.githubusercontent.com/twenty8cows/Eden/main/Eden%%20Profile%%20Coin.jpg")';
+el2.style.width = '20px';
+el2.style.height = '20px';
+el2.style.backgroundSize = 'cover';
+el2.style.borderRadius = '50%%';
+
+new mapboxgl.Marker(el1)
   .setLngLat([-82.50622788, 28.0459843])
   .setPopup(
     new mapboxgl.Popup().setHTML("<strong>Eden Tampa</strong><p><a href='https://www.google.com/search?q=eden+cannabis+tampa&sca_esv=48c2a6a335f0c113&sxsrf=AE3TifNBueNJ4VTPgPNPWw8zmwHHa5fEuQ%%3A1757363277265&source=hp&ei=TTy_aJ-GDr6EwbkP7veGqQ4&iflsig=AOw8s4IAAAAAaL9KXaRwgmTIJiMOG5gg1GFLbJ3YeuR5&oq=eden+&gs_lp=Egdnd3Mtd2l6IgVlZGVuICoCCAAyBBAjGCcyFBAuGIAEGJECGMcBGIoFGI4FGK8BMg4QLhiABBjHARiOBRivATILEC4YgAQYxwEYrwEyCBAuGIAEGLEDMggQLhiABBixAzIIEC4YgAQYsQMyCxAuGIAEGMcBGK8BMgUQABiABDILEC4YgAQYxwEYrwFIpQ5QAFiJBHAAeACQAQCYAa8BoAGOBaoBAzEuNLgBAcgBAPgBAZgCBaACpQXCAgoQIxiABBgnGIoFwgIREC4YgAQYkQIY0QMYxwEYigXCAhEQLhiABBixAxjRAxiDARjHAcICCxAuGIAEGLEDGIMBwgILEAAYgAQYsQMYgwHCAg4QLhiABBixAxiDARiKBcICCxAAGIAEGJECGIoFwgIIEAAYgAQYsQOYAwCSBwMxLjSgB-hksgcDMS40uAelBcIHBTAuMy4yyAcT&sclient=gws-wiz' target='_blank'>View on Google</a></p>")
   )
   .addTo(map);
 
-
+new mapboxgl.Marker(el2)
+  .setLngLat([-82.51312, 27.24787])
+  .setPopup(
+    new mapboxgl.Popup().setHTML("<strong>Eden Tampa</strong><p><a href='https://edenflorida.com/locations/sarasota/' target='_blank'>Sarasota store page</a></p>")
+  )
+  .addTo(map);
 
 if (!isMobile) {
     map.dragPan.disable();
@@ -389,7 +402,9 @@ var scheduleMapping = {
   "Gainesville": "<ul><li>Friday: 12pm-4pm</li></ul><a href='https://www.edenflorida.com/shop/' target='_blank' style='display: block; text-align: center;'>Shop Now!</a>",
   "Vero Beach": "<ul><li>Friday: 12pm-4pm</li></ul><a href='https://www.edenflorida.com/shop/' target='_blank' style='display: block; text-align: center;'>Shop Now!</a>",
   "Space Coast": "<ul><li>Friday: 12pm-4pm</li></ul><a href='https://www.edenflorida.com/shop/' target='_blank' style='display: block; text-align: center;'>Shop Now!</a>",
-  "Ft Myers": "<ul><li>Thursday: 12pm-4pm</li></ul><a href='https://www.edenflorida.com/shop/' target='_blank' style='display: block; text-align: center;'>Shop Now!</a>"
+  "Ft Myers": "<ul><li>Thursday: 12pm-4pm</li></ul><a href='https://www.edenflorida.com/shop/' target='_blank' style='display: block; text-align: center;'>Shop Now!</a>",
+  "PCB": "<ul><li>Wednesday: 12pm-4pm</li></ul><a href='https://www.edenflorida.com/shop/' target='_blank' style='display: block; text-align: center;'>Shop Now!</a>",
+  "Tallahassee": "<ul><li>Wednesday: 12pm-4pm</li></ul><a href='https://www.edenflorida.com/shop/' target='_blank' style='display: block; text-align: center;'>Shop Now!</a>",
 };
 
 var geocoder = new MapboxGeocoder({ accessToken:mapboxgl.accessToken, mapboxgl:mapboxgl, marker:false, placeholder:'Enter an Florida Address', minLength:5, bbox:[-88.0,24.0,-79.5,31.1] });
@@ -572,7 +587,7 @@ map.on('zoomend', function(){ console.log('Zoom:', map.getZoom()); });
 func main() {
 	godotenv.Load()
 
-	kmlFile := "/Users/jon/fl_map_go/Eden Layout 12.15.25.kml"
+	kmlFile := "/Users/jon/fl_map_go/Eden Layout 01.05.26.kml"
 	roadsGeoJSON := os.Getenv("ROADWAYS_GEOJSON")
 	mapboxToken := os.Getenv("MAPBOX_TOKEN")
 
